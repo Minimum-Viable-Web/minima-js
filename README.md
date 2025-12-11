@@ -6,6 +6,16 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-0-green.svg)](https://github.com/tolinsimpson/minima-js)
 
+---
+
+## Other Projects
+
+### [Minibun](https://github.com/TolinSimpson/Minibun)
+A tiny javascript bundler implementation
+
+### [minima-js](https://github.com/TolinSimpson/minima-js)
+A tiny, fully-featured, zero-dependency JavaScript framework. 
+
 **This was vibe coded lol**
 
 ## Why MinimaJS?
