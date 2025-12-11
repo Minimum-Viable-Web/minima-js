@@ -52,7 +52,7 @@
   "scripts": {
     "build": "npm run build:minify",
     "build:minify": "node scripts/minify.js",
-    "test": "node examples/minima.test.js",
+    "test": "node test.js",
     "dev": "python -m http.server 8080 || npx serve .",
     "prepublishOnly": "npm run build && npm test",
     "size": "node -e \"console.log('Bundle sizes:'); require('fs').readdirSync('dist').forEach(f => console.log(f + ':', Math.round(require('fs').statSync('dist/' + f).size/1024) + 'KB'))\""
