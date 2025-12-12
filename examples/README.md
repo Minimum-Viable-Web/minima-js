@@ -8,7 +8,6 @@ The examples use ES modules and need to be served from an HTTP server to work pr
 
 ```bash
 # From the project root
-cd MinimaJS
 python3 -m http.server 8000
 
 # Then open in browser:
@@ -24,7 +23,7 @@ python3 -m http.server 8000
 npm install -g http-server
 
 # From the project root
-http-server MinimaJS -p 8000
+http-server . -p 8000
 
 # Then open in browser:
 # http://localhost:8000/examples/getting-started.html

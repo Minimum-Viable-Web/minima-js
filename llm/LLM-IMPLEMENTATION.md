@@ -89,8 +89,10 @@ E2E:[todo-app]→[cypress/todo.spec.js] MOCK:[none]→[real-browser-testing]
 ## BUILD PIPELINE
 ```
 SRC→[no-transform]→DIST WATCH:[src/**/*.js] HOT-RELOAD:[yes]
-MINIFY:[18]kb→[18]kb BUNDLE:[concatenation-only] SOURCEMAPS:[yes]
+MINIFY:[18]kb→[18]kb BUNDLE:[concatenation-only] SOURCEMS:[yes]
 
 DEVELOPMENT: MinimaDevServer.js → NODE.JS:[file-serving] WEBSOCKET:[hot-reload] SECURITY:[path-validation]
 PRODUCTION: [static-files-only] → CDN:[direct-serve] CACHE:[browser-cache-headers] COMPRESS:[gzip-enabled]
 ```
+
+

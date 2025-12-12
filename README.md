@@ -6,17 +6,14 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-0-green.svg)](https://github.com/tolinsimpson/minima-js)
 
+> ⚠️ **EXPERIMENTAL** – This project is pending testing in production senerios. Use at own risk.
+
 ---
-
-## Other Projects
-
-### [Minibun](https://github.com/TolinSimpson/Minibun)
-A tiny javascript bundler implementation
-
-### [minima-js](https://github.com/TolinSimpson/minima-js)
-A tiny, fully-featured, zero-dependency JavaScript framework. 
-
-**This was vibe coded lol**
+## The tiny web ecosystem
+### [Minibun](https://github.com/TolinSimpson/Minibun) - A tiny javascript bundler implementation
+### [Minirend](https://github.com/TolinSimpson/minirend) - A tiny cross-platform javascript runtime & web renderer
+### [LLM Tiny Web](https://github.com/TolinSimpson/LLM-Agent-Tiny-Web-Instructions) - Optimized LLM instructions for writing tiny web code
+---
 
 ## Why MinimaJS?
 
@@ -28,8 +25,6 @@ A tiny, fully-featured, zero-dependency JavaScript framework.
 - **XSS-safe** - Built-in security by default
 
 ## Framework Comparison
-
-### Feature Comparison
 
 | Feature | MinimaJS | React | Vue 3 | Preact | Svelte |
 |---------|----------|-------|-------|--------|--------|
@@ -46,6 +41,7 @@ A tiny, fully-featured, zero-dependency JavaScript framework.
 | **Built-in XSS Protection** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **LLM-Optimized API** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Advanced DevTools** | ✅ | ✅ | ✅ | ❌ | ✅ |
+
 
 ### Bundle Size Comparison
 
@@ -238,7 +234,8 @@ const UserProfile = ({ userId }) => {
 
 </details>
 
-## Quick Start
+<details>
+<summary><strong>Quick Start</strong></summary>
 
 ```bash
 npm install @tolinsimpson/minimajs
@@ -306,8 +303,10 @@ const TodoApp = () => {
   `;
 };
 ```
+</details>
 
-## Core Concepts
+<details>
+<summary><strong>Core Concepts</strong></summary>
 
 ### Components & Hooks
 
@@ -334,8 +333,10 @@ const UserProfile = ({ userId }) => {
   ]);
 };
 ```
+</details>
 
-### State Management
+<details>
+<summary><strong>State Managment</strong></summary>
 
 ```javascript
 import { useState, toggle, counter, inputState } from '@tolinsimpson/minimajs/full';
@@ -360,8 +361,10 @@ const MyComponent = () => {
   ]);
 };
 ```
+</details>
 
-## LLM-Optimized APIs
+<details>
+<summary><strong>LLM-Optimized APIs</strong></summary>
 
 Perfect for AI code generation with predictable patterns:
 
@@ -418,8 +421,10 @@ const counter = llmCreateApp.counter({
   step: 2 
 });
 ```
+</details>
 
-## Server-Side Rendering
+<details>
+<summary><strong>Server-Side Rendering</strong></summary>
 
 ```javascript
 import { renderToString, hydrate } from '@tolinsimpson/minimajs/full';
@@ -431,7 +436,10 @@ res.send(`<!DOCTYPE html><html><body><div id="app">${html}</div></body></html>`)
 // Client  
 hydrate(App, document.getElementById('app'), { props });
 ```
+</details>
 
+<details>
+<summary><strong>Built Framework Options</strong></summary>
 ## Combined File (`minima-full.js`)
 
 MinimaJS provides a complete combined file that includes **all features** in a single import for maximum convenience and rapid prototyping.
@@ -556,6 +564,11 @@ enableDevTools();
 // Or set in browser console
 window.__MINIMA_DEVTOOLS__ = true;
 ```
+
+</details>
+
+<details>
+<summary><strong>API Reference</strong></summary>
 
 ## API Reference
 
@@ -942,6 +955,8 @@ const TestComponent = () => {
 render(TestComponent(), document.body);
 ```
 
+</details>
+
 ## Contributing
 
 We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md).
@@ -959,7 +974,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 ## Links
 
 - [Documentation](https://minimajs.dev)
-- [Examples](./examples/) - Run with `cd MinimaJS && python3 -m http.server 8000`
+- **Examples**: `cd examples && python3 -m http.server 8000`
 - [GitHub Package](https://github.com/tolinsimpson/minima-js/packages)
 - [GitHub](https://github.com/tolinsimpson/minima-js)
 - [Issues](https://github.com/tolinsimpson/minima-js/issues)

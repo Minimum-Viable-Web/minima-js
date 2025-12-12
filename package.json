@@ -1,7 +1,7 @@
 {
   "name": "@tolinsimpson/minimajs",
   "version": "1.0.0",
-  "description": "Ultra-lightweight modern web framework - React alternative with shortest API syntax, zero dependencies, built-in SSR, and LLM-optimized development experience",
+  "description": "Ultra-lightweight modern web framework - React alternative with short API syntax, zero dependencies, built-in SSR, and LLM-optimized development experience",
   "main": "src/minima.js",
   "module": "src/minima.js",
   "type": "module",
@@ -14,44 +14,43 @@
       "production": "./dist/minima.min.js"
     },
     "./core": {
-      "import": "./lib/minima-core.js",
+      "import": "./src/minima-core.js",
       "production": "./dist/minima-core.min.js"
     },
     "./template": {
-      "import": "./lib/minima-template.js", 
+      "import": "./src/minima-template.js", 
       "production": "./dist/minima-template.min.js"
     },
     "./component": {
-      "import": "./lib/minima-component.js",
+      "import": "./src/minima-component.js",
       "production": "./dist/minima-component.min.js"
     },
     "./ssr": {
-      "import": "./lib/minima-ssr.js",
+      "import": "./src/minima-ssr.js",
       "production": "./dist/minima-ssr.min.js"
     },
     "./api": {
-      "import": "./lib/minima-api.js",
+      "import": "./src/minima-api.js",
       "production": "./dist/minima-api.min.js"
     },
     "./llm": {
-      "import": "./lib/minima-llm.js",
+      "import": "./src/minima-llm.js",
       "production": "./dist/minima-llm.min.js"
     },
     "./devtools": {
-      "import": "./lib/minima-devtools.js",
+      "import": "./src/minima-devtools.js",
       "production": "./dist/minima-devtools.min.js"
     }
   },
   "files": [
     "src/",
-    "lib/",
     "dist/",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
     "build": "npm run build:minify",
-    "build:minify": "node scripts/minify.js",
+    "build:minify": "node build.js",
     "test": "node test.js",
     "dev": "python -m http.server 8080 || npx serve .",
     "prepublishOnly": "npm run build && npm test",

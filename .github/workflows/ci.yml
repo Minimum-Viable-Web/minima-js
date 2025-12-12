@@ -23,17 +23,13 @@ jobs:
         node-version: ${{ matrix.node-version }}
 
     - name: Install dependencies
-      working-directory: MinimaJS
       run: npm ci
 
     - name: Run tests
-      working-directory: MinimaJS
       run: npm test
 
     - name: Check bundle size
-      working-directory: MinimaJS
       run: npm run size
 
     - name: Build minified versions
-      working-directory: MinimaJS
       run: npm run build

@@ -14,7 +14,7 @@ export {
   useResource,
   Suspense,
   render
-} from '../lib/minima-core.js';
+} from './minima-core.js';
 
 // Optional Dev Tools (loaded separately)
 export {
@@ -24,14 +24,14 @@ export {
   analyzePerformance,
   enableDevTools,
   disableDevTools
-} from '../lib/minima-devtools.js';
+} from './minima-devtools.js';
 
 // XSS-Safe HTML Templates  
 export { 
   html, 
   loadTemplate, 
   sanitizeText 
-} from '../lib/minima-template.js';
+} from './minima-template.js';
 
 // Advanced Component System
 export { 
@@ -40,7 +40,7 @@ export {
   compose, 
   Fragment, 
   memo 
-} from '../lib/minima-component.js';
+} from './minima-component.js';
 
 // Server-Side Rendering
 export { 
@@ -49,7 +49,7 @@ export {
   preloadComponent, 
   ssrData, 
   injectSSRData 
-} from '../lib/minima-ssr.js';
+} from './minima-ssr.js';
 
 // LLM-Optimized Layer
 export {
@@ -58,7 +58,7 @@ export {
   createApp as llmCreateApp,
   safeRender, safeComponent, tryRender,
   page, builder
-} from '../lib/minima-llm.js';
+} from './minima-llm.js';
 
 // API
 export {
@@ -72,7 +72,7 @@ export {
   route, link,
   context, createContext, ErrorBoundary,
   debug, log
-} from '../lib/minima-api.js';
+} from './minima-api.js';
 
 // Framework metadata
 export const version = '1.0.0';

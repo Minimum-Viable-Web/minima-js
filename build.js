@@ -14,23 +14,23 @@ const minify = (content) => content
   .trim()
   .replace(/\n\s*\n/g, '\n');
 
-// Files to minify
+// Files to minify (source now lives in src/)
 const files = [
-  'MinimaJS/lib/minima-core.js',
-  'MinimaJS/lib/minima-api.js',
-  'MinimaJS/lib/minima-component.js',
-  'MinimaJS/lib/minima-template.js',
-  'MinimaJS/lib/minima-ssr.js',
-  'MinimaJS/lib/minima-llm.js',
-  'MinimaJS/lib/minima-devtools.js',
-  'MinimaJS/lib/minima-full.js',
-  'MinimaJS/src/minima.js'
+  'src/minima-core.js',
+  'src/minima-api.js',
+  'src/minima-component.js',
+  'src/minima-template.js',
+  'src/minima-ssr.js',
+  'src/minima-llm.js',
+  'src/minima-devtools.js',
+  'src/minima-full.js',
+  'src/minima.js'
 ];
 
 console.log('Building minified versions...\n');
 
 // Ensure dist directory exists
-fs.mkdirSync('MinimaJS/dist', { recursive: true });
+fs.mkdirSync('dist', { recursive: true });
 
 let totalOriginalSize = 0;
 let totalMinifiedSize = 0;
@@ -43,7 +43,7 @@ files.forEach(file => {
     const minified = minify(content);
     
     const basename = path.basename(file, '.js');
-    fs.writeFileSync(path.join('MinimaJS/dist', basename + '.min.js'), minified);
+    fs.writeFileSync(path.join('dist', basename + '.min.js'), minified);
     
     const oLen = content.length, mLen = minified.length;
     totalOriginalSize += oLen;

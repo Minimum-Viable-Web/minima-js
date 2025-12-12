@@ -2,10 +2,11 @@
  * MinimaJS Node Test Suite - Zero Dependencies
  */
 
-import { createElement } from './lib/minima-core.js';
-import { sanitizeText } from './lib/minima-template.js';
-import { renderToString, injectSSRData } from './lib/minima-ssr.js';
-import { defineComponent, withProps, Fragment, memo } from './lib/minima-component.js';
+import { createElement } from './src/minima-core.js';
+import { sanitizeText } from './src/minima-template.js';
+import { renderToString, injectSSRData } from './src/minima-ssr.js';
+import { defineComponent, withProps, Fragment, memo } from './src/minima-component.js';
+import { runLibModuleTests } from './tests/lib-modules.test.js';
 
 let passed = 0, failed = 0;
 const test = (name, fn) => {
@@ -225,6 +226,10 @@ test('numeric props', () => {
   const html = renderToString(() => v);
   ok(html.includes('tabIndex="1"') || html.includes('tabindex="1"'), 'numeric prop');
 });
+
+// Additional lib module tests (API, LLM, DevTools, Full bundle)
+console.log('\n-- Lib Modules: API / LLM / DevTools / Full --');
+runLibModuleTests(test, eq, ok);
 
 // Summary
 console.log('\n=== Results ===');

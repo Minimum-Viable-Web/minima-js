@@ -87,3 +87,8 @@ Icon
 *.njsproj
 *.sln
 *.sw?
+
+# LLM design/docs (ignored)
+# See https://github.com/TolinSimpson/LLM-Agent-Tiny-Web-Instructions for source
+AGENTS.md
+PROJECT-SETUP-PROMPT.md
