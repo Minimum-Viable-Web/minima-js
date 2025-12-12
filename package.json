@@ -1,6 +1,6 @@
 {
   "name": "@tolinsimpson/minimajs",
-  "version": "1.0.0",
+  "version": "1.0.5",
   "description": "Ultra-lightweight modern web framework - React alternative with short API syntax, zero dependencies, built-in SSR, and LLM-optimized development experience",
   "main": "src/minima.js",
   "module": "src/minima.js",
@@ -18,7 +18,7 @@
       "production": "./dist/minima-core.min.js"
     },
     "./template": {
-      "import": "./src/minima-template.js", 
+      "import": "./src/minima-template.js",
       "production": "./dist/minima-template.min.js"
     },
     "./component": {
@@ -58,7 +58,7 @@
   },
   "keywords": [
     "framework",
-    "virtual-dom", 
+    "virtual-dom",
     "reactive",
     "lightweight",
     "zero-dependencies",
@@ -82,7 +82,7 @@
   "homepage": "https://github.com/tolinsimpson/minima-js#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/tolinsimpson/minima-js.git"
+    "url": "git+https://github.com/tolinsimpson/minima-js.git"
   },
   "bugs": {
     "url": "https://github.com/tolinsimpson/minima-js/issues"
