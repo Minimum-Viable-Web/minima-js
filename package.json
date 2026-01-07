@@ -1,6 +1,6 @@
 {
   "name": "@minimum-viable-web/minimajs",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Ultra-lightweight modern web framework - React alternative with short API syntax, zero dependencies, built-in SSR, and LLM-optimized development experience",
   "main": "src/minima.js",
   "module": "src/minima.js",
