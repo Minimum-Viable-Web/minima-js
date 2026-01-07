@@ -2,9 +2,9 @@
 
 **Ultra-lightweight React alternative with short API syntax, zero dependencies, and LLM-optimized development experience.**
 
-[![GitHub Package](https://img.shields.io/badge/GitHub-Package-blue.svg)](https://github.com/Minimum-Viable-Web/minima-js/packages)
 [![Package Status](https://github.com/Minimum-Viable-Web/minima-js/actions/workflows/publish.yml/badge.svg)](https://github.com/Minimum-Viable-Web/minima-js/actions/workflows/publish.yml)
 [![Build Status](https://github.com/Minimum-Viable-Web/minima-js/actions/workflows/ci.yml/badge.svg)](https://github.com/Minimum-Viable-Web/minima-js/actions/workflows/ci.yml)
+[![GitHub Package](https://img.shields.io/badge/GitHub-Package-blue.svg)](https://github.com/Minimum-Viable-Web/minima-js/packages)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-0-green.svg)](https://github.com/Minimum-Viable-Web/minima-js)
 
