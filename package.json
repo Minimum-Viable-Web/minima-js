@@ -1,6 +1,6 @@
 {
-  "name": "@tolinsimpson/minimajs",
-  "version": "1.0.5",
+  "name": "@minimum-viable-web/minimajs",
+  "version": "1.0.6",
   "description": "Ultra-lightweight modern web framework - React alternative with short API syntax, zero dependencies, built-in SSR, and LLM-optimized development experience",
   "main": "src/minima.js",
   "module": "src/minima.js",
@@ -79,13 +79,13 @@
     "name": "MinimaJS Team"
   },
   "license": "MIT",
-  "homepage": "https://github.com/tolinsimpson/minima-js#readme",
+  "homepage": "https://github.com/Minimum-Viable-Web/minima-js#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tolinsimpson/minima-js.git"
+    "url": "git+https://github.com/Minimum-Viable-Web/minima-js.git"
   },
   "bugs": {
-    "url": "https://github.com/tolinsimpson/minima-js/issues"
+    "url": "https://github.com/Minimum-Viable-Web/minima-js/issues"
   },
   "browser": "dist/minima.min.js",
   "unpkg": "dist/minima.min.js",

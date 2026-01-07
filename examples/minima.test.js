@@ -2,7 +2,7 @@
  * MinimaJS Test Suite v1.0.0 - Comprehensive Framework Testing
  */
 
-import { createElement, useState, useEffect, render, html, defineComponent, createApp } from '@tolinsimpson/minimajs';
+import { createElement, useState, useEffect, render, html, defineComponent, createApp } from '@minimum-viable-web/minimajs';
 
 // Test utilities
 const assert = (condition, message) => {
