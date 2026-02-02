@@ -59,7 +59,7 @@ const renderToString = (component, props = {}) => {
 };
 
 // Hydration - make server-rendered HTML interactive
-const hydrate = (component, container, serverHTML) => {
+const hydrate = (component, container, serverHTML, handlers) => {
   if (isServer) return console.warn('hydrate() called in server environment');
   
   const originalHTML = container.innerHTML;
@@ -75,7 +75,7 @@ const hydrate = (component, container, serverHTML) => {
       container.innerHTML = '';
       hydrateClientOnly(vnode, container);
     } else {
-      hydrateInteractive(container);
+      hydrateInteractive(container, handlers);
     }
   } catch (error) {
     console.error('Hydration error:', error);
@@ -104,12 +104,12 @@ const hydrateClientOnly = (vnode, container) => {
 };
 
 // Attach event listeners to server-rendered HTML
-const hydrateInteractive = (container) => {
+const hydrateInteractive = (container, handlers) => {
   container.querySelectorAll('[data-minima-events]').forEach(element => {
     try {
       const events = JSON.parse(element.getAttribute('data-minima-events'));
       Object.keys(events).forEach(eventType => {
-        const handler = window[events[eventType]];
+        const k = events[eventType], handler = (handlers && handlers[k]) || window?.[k];
         if (typeof handler === 'function') element.addEventListener(eventType, handler);
       });
     } catch (e) {
@@ -154,7 +154,7 @@ const ssrData = (key, fetcher) => {
 // Inject SSR data into HTML (server-side)
 const injectSSRData = (html, dataMap) => {
   const scripts = Object.keys(dataMap).map(key => 
-    `<script type="application/json" data-ssr-key="${key}">${JSON.stringify(dataMap[key])}</script>`
+    `<script type="application/json" data-ssr-key="${key}">${JSON.stringify(dataMap[key]).replace(/</g,'\\u003c')}</script>`
   ).join('');
   return html.replace('</body>', `${scripts}</body>`);
 };

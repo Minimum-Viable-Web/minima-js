@@ -14,7 +14,7 @@ Notes:
 - `renderToString` converts VNodes to HTML and **escapes text** via `sanitizeText()`.
 - Function-valued `on*` props are **not** serialized into HTML.
 
-## `hydrate(component, container, serverHTML?)`
+## `hydrate(component, container, serverHTML?, handlers?)`
 
 ```js
 import { hydrate } from '@minimum-viable-web/minimajs/ssr';

@@ -82,7 +82,7 @@ const parseHTML = (html) => {
       i = tagEnd + 1;
     } else {
       const nextTag = html.indexOf('<', i);
-      const text = html.slice(i, nextTag === -1 ? html.length : nextTag).trim();
+      const text = html.slice(i, nextTag === -1 ? html.length : nextTag);
       if (text) tokens.push({ type: 'text', content: text });
       i = nextTag === -1 ? html.length : nextTag;
     }
@@ -93,11 +93,11 @@ const parseHTML = (html) => {
 // Parse attributes from tag content
 const parseAttrs = (attrStr) => {
   const attrs = {};
-  const regex = /(\w+)(?:=["']([^"']*?)["'])?/g;
+  const regex = /([^\s=\/>]+)(?:=(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
   let match;
   
   while ((match = regex.exec(attrStr)) !== null) {
-    const [, name, value = ''] = match;
+    const name = match[1], value = match[2] ?? match[3] ?? match[4] ?? '';
     const sanitized = sanitizeAttr(name, value);
     if (sanitized !== null) attrs[name] = sanitized;
   }

@@ -1,11 +1,8 @@
-/**
- * MinimaJS Core v1.0.0 - Modern Virtual DOM Framework
- */
+/* MinimaJS Core v1.0.0 - Modern Virtual DOM Framework */
 
 // Global state management
 let currentComponent = null;
 let hookIndex = 0;
-let components = new WeakMap();
 
 // Cached constants
 const CHILDREN = 'children', KEY = 'key';
@@ -20,7 +17,7 @@ const depsEqual = (a, b) => {
 // Hook initialization helper
 const initHook = (name) => {
   if (!currentComponent) throw new Error(`${name}: ${ERR_OUTSIDE}`);
-  const comp = components.get(currentComponent);
+  const comp = currentComponent;
   const idx = hookIndex++;
   if (!comp.hooks) comp.hooks = [];
   if (!comp.hooks[idx]) comp.hooks[idx] = {};
@@ -40,12 +37,31 @@ let pendingTransitions = new Set();
 let suspenseCache = new Map();
 let currentSuspenseHandler = null;
 
+// Post-commit effect queue
+let effectQueue = new Set();
+const flushEffects = () => {
+  if (!effectQueue.size) return;
+  effectQueue.forEach(comp => {
+    (comp.hooks || []).forEach(h => {
+      if (!h || !h._e) return;
+      h._e = 0;
+      if (h.cleanup) h.cleanup();
+      const c = h.effect && h.effect();
+      h.cleanup = typeof c === 'function' ? c : null;
+    });
+  });
+  effectQueue.clear();
+};
+
+// Deep-flatten children
+const flat = (a, r = []) => (a.forEach(v => Array.isArray(v) ? flat(v, r) : r.push(v)), r);
+
 // Virtual Node creation
 const createElement = (type, props = {}, ...children) => {
   const isVNode = (v) => v && typeof v === 'object' && 'type' in v && 'props' in v;
   if (props == null) props = {};
   else if (typeof props !== 'object' || Array.isArray(props) || isVNode(props)) (children = [props, ...children], props = {});
-  const flatChildren = children.flat();
+  const flatChildren = flat(children);
 
   // Create props object only if needed
   const vnodeProps = props && Object.keys(props).length > 0
@@ -54,7 +70,7 @@ const createElement = (type, props = {}, ...children) => {
 
   const vnode = { type, props: vnodeProps, key: props?.key ?? null };
 
-  // Validate keys in children for duplicates (only when > 1 child)
+  // Validate keys in children for duplicates
   if (flatChildren.length > 1) {
     const keys = new Set();
     for (let i = 0; i < flatChildren.length; i++) {
@@ -76,7 +92,7 @@ const createElement = (type, props = {}, ...children) => {
 const useState = (initial) => {
   const [comp, idx, hook] = initHook('useState');
   const owner = currentComponent;
-  if (hook.state === undefined) hook.state = initial;
+  if (hook.state === undefined) hook.state = typeof initial === 'function' ? initial() : initial;
   
   const setState = (newState) => {
     const value = typeof newState === 'function' ? newState(hook.state) : newState;
@@ -93,12 +109,7 @@ const useState = (initial) => {
 const useEffect = (effect, deps) => {
   const [comp, idx, hook] = initHook('useEffect');
   
-  if (!depsEqual(hook.deps, deps)) {
-    if (hook.cleanup) hook.cleanup();
-    hook.cleanup = effect();
-    hook.deps = deps;
-  }
-
+  if (!depsEqual(hook.deps, deps)) (hook.deps = deps, hook.effect = effect, hook._e = 1, effectQueue.add(comp));
   if (!comp.cleanup) comp.cleanup = () => comp.hooks?.forEach(h => h.cleanup?.());
 };
 
@@ -188,7 +199,7 @@ const Suspense = ({ children, fallback }) => {
 
 // Rendering queue
 const scheduleRender = (component) => {
-  if (!component || !components.has(component)) return;
+  if (!component || !component._m) return;
   renderQueue.add(component);
   if (!isRendering) {
     isRendering = true;
@@ -198,15 +209,37 @@ const scheduleRender = (component) => {
         renderQueue.forEach(comp => renderComponent(comp));
         renderQueue.clear();
         isRendering = false;
+        flushEffects();
       }, { timeout: 100 });
     } else {
       setTimeout(() => {
         renderQueue.forEach(comp => renderComponent(comp));
         renderQueue.clear();
         isRendering = false;
+        flushEffects();
       }, 0);
     }
   }
+};
+
+// Unmount vnode tree (ensures effect cleanups run)
+const unmountVNode = (vnode, dom) => {
+  if (vnode == null || vnode === false) return;
+  if (typeof vnode === 'string' || typeof vnode === 'number') return;
+  if (typeof vnode === 'function') return;
+  if (vnode.type && typeof vnode.type === 'function') {
+    const inst = vnode._i;
+    if (inst) {
+      unmountVNode(inst.oldVNode, dom);
+      inst.cleanup && inst.cleanup();
+      effectQueue.delete(inst);
+      inst._m = 0;
+    }
+    return;
+  }
+  const kids = vnode.props?.[CHILDREN] || [];
+  const nodes = dom && dom.childNodes;
+  if (kids && nodes) for (let i = 0, di = 0; i < kids.length && di < nodes.length; i++, di++) unmountVNode(kids[i], nodes[di]);
 };
 
 // Virtual DOM diffing algorithm with key-based reconciliation
@@ -215,12 +248,8 @@ const diff = (oldVNode, newVNode, container, index = 0) => {
   if (empty(oldVNode) && empty(newVNode)) return;
   // Remove old node
   if (empty(newVNode) && !empty(oldVNode)) {
+    unmountVNode(oldVNode, container.childNodes[index]);
     container.removeChild(container.childNodes[index]);
-    // Cleanup component if it was a function component
-    if (oldVNode.type && typeof oldVNode.type === 'function') {
-      const comp = components.get(oldVNode.type);
-      if (comp?.cleanup) comp.cleanup();
-    }
     return;
   }
 
@@ -232,7 +261,18 @@ const diff = (oldVNode, newVNode, container, index = 0) => {
 
   // Replace different types
   if (oldVNode.type !== newVNode.type) {
+    unmountVNode(oldVNode, container.childNodes[index]);
     container.replaceChild(createDOMElement(newVNode), container.childNodes[index]);
+    return;
+  }
+
+  // Function components: update via instance render, not DOM props
+  if (newVNode && newVNode.type && typeof newVNode.type === 'function') {
+    const inst = (newVNode._i = oldVNode._i || newVNode._i || { fn: newVNode.type, hooks: [], oldVNode: null, dom: container.childNodes[index], props: newVNode.props, _m: 1 });
+    inst.props = newVNode.props;
+    inst.dom = container.childNodes[index];
+    inst._m = 1;
+    renderComponent(inst, container, index);
     return;
   }
 
@@ -308,16 +348,6 @@ const diff = (oldVNode, newVNode, container, index = 0) => {
   }
 };
 
-// Helper function to find DOM index from VNode index
-const findDOMIndex = (parent, vnodeIndex) => {
-  const children = Array.from(parent.childNodes);
-  let domIndex = 0;
-  for (let i = 0; i < vnodeIndex && domIndex < children.length; i++) {
-    domIndex++;
-  }
-  return domIndex < children.length ? domIndex : -1;
-};
-
 // Find DOM index by keyed element marker
 const findDOMIndexByKey = (parent, key) => {
   const k = String(key);
@@ -353,59 +383,33 @@ const createDOMElement = (vnode) => {
 
 // Function component rendering
 const renderFunction = (vnode) => {
-  const comp = vnode.type;
-  const prevComponent = currentComponent;
-  const prevHookIndex = hookIndex;
-  
-  // Set up component context
-  currentComponent = comp;
-  hookIndex = 0;
-  
-  if (!components.has(comp)) {
-    components.set(comp, { 
-      element: null, 
-      oldVNode: null,
-      props: vnode.props 
-    });
-  }
-  
-  // Render component
-  const compData = components.get(comp);
-  const rendered = comp(vnode.props);
-  
-  if (!compData.element) {
-    compData.element = createDOMElement(rendered);
-    compData.oldVNode = rendered;
-  }
-  
-  // Restore context
-  currentComponent = prevComponent;
-  hookIndex = prevHookIndex;
-  
-  return compData.element;
+  const inst = vnode._i || (vnode._i = { fn: vnode.type, hooks: [], oldVNode: null, dom: null, props: vnode.props, _m: 1 });
+  inst.props = vnode.props;
+  const prevComponent = currentComponent, prevHookIndex = hookIndex;
+  currentComponent = inst; hookIndex = 0;
+  const rendered = inst.fn(vnode.props);
+  if (!inst.dom) (inst.dom = createDOMElement(rendered), inst.oldVNode = rendered);
+  currentComponent = prevComponent; hookIndex = prevHookIndex;
+  return inst.dom;
 };
 
 // Re-render component
-const renderComponent = (comp) => {
-  const compData = components.get(comp);
-  if (!compData.element) return;
-  
-  const prevComponent = currentComponent;
-  const prevHookIndex = hookIndex;
-  
-  currentComponent = comp;
-  hookIndex = 0;
-  
-  const newVNode = comp(compData.props);
-  const parentNode = compData.element.parentNode;
-  const siblings = parentNode.childNodes;
-  let elementIndex = 0;
-  for (; elementIndex < siblings.length && siblings[elementIndex] !== compData.element; elementIndex++);
-  diff(compData.oldVNode, newVNode, parentNode, elementIndex);
-  
-  compData.oldVNode = newVNode;
-  currentComponent = prevComponent;
-  hookIndex = prevHookIndex;
+const renderComponent = (inst, parentNode, elementIndex) => {
+  if (!inst || !inst._m) return;
+  if (!parentNode) parentNode = inst.dom && inst.dom.parentNode;
+  if (parentNode && elementIndex == null) {
+    const siblings = parentNode.childNodes;
+    elementIndex = 0;
+    for (; elementIndex < siblings.length && siblings[elementIndex] !== inst.dom; elementIndex++);
+  }
+  if (!parentNode || elementIndex == null) return;
+  const prevComponent = currentComponent, prevHookIndex = hookIndex;
+  currentComponent = inst; hookIndex = 0;
+  const next = inst.fn(inst.props);
+  diff(inst.oldVNode, next, parentNode, elementIndex);
+  inst.oldVNode = next;
+  inst.dom = parentNode.childNodes[elementIndex];
+  currentComponent = prevComponent; hookIndex = prevHookIndex;
 };
 
 const updateProps = (element, oldProps = {}, newProps = {}) => {
@@ -454,11 +458,13 @@ const render = (vnode, container) => {
   if (vnode == null || vnode === false) {
     if (container._minimaVNode) diff(container._minimaVNode, null, container, 0);
     container._minimaVNode = null;
+    flushEffects();
     return;
   }
   if (container._minimaVNode) diff(container._minimaVNode, vnode, container, 0);
   else container.appendChild(createDOMElement(vnode));
   container._minimaVNode = vnode;
+  flushEffects();
 };
 
 // Export public API

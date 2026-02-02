@@ -113,6 +113,40 @@ test('parses void tags without swallowing siblings', () => {
   eq(v.props.children[1].type, 'span', 'span second');
 });
 
+console.log('\n-- Security --');
+test('template: blocks javascript: href', () => {
+  const v = html`<a href="javascript:alert(1)">x</a>`;
+  ok(!('href' in v.props), 'href dropped');
+});
+
+test('template: blocks data: src', () => {
+  const v = html`<img src="data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==">`;
+  ok(!('src' in v.props), 'src dropped');
+});
+
+test('template: drops inline on* handlers', () => {
+  const v = html`<img onerror="alert(1)" src="x">`;
+  ok(!('onerror' in v.props) && !('onError' in v.props), 'onerror dropped');
+});
+
+test('template: preserves data-* and aria-* attrs', () => {
+  const v = html`<div data-x="1" aria-label="y"></div>`;
+  eq(v.props['data-x'], '1', 'data-x');
+  eq(v.props['aria-label'], 'y', 'aria-label');
+});
+
+test('template: preserves whitespace in text nodes', () => {
+  const v = html`<div> a  b </div>`;
+  eq(v.props.children[0], ' a  b ', 'whitespace');
+});
+
+test('ssr: injectSSRData escapes < to prevent script-breakout', () => {
+  const page = '<html><body></body></html>';
+  const out = injectSSRData(page, { x: '</script><script>alert(1)</script>' });
+  ok(!out.includes('</script><script>alert(1)</script>'), 'no raw close/open script');
+  ok(out.includes('\\u003c/script'), 'escaped <');
+});
+
 // renderToString tests
 console.log('\n-- SSR: renderToString --');
 test('renders simple element', () => {

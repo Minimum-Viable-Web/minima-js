@@ -16,7 +16,7 @@ What it does:
 - Escapes text via the template sanitization rules
 - Skips function-valued `on*` props (functions don’t serialize to HTML)
 
-## `hydrate(componentOrVNode, container, serverHTML?)`
+## `hydrate(componentOrVNode, container, serverHTML?, handlers?)`
 
 ```js
 import { hydrate } from '@minimum-viable-web/minimajs/ssr';

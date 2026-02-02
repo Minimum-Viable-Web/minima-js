@@ -99,7 +99,7 @@ export const createApp = (rootComponent, container) => {
   return { 
     container: target, 
     component: rootComponent,
-    unmount: () => { target.innerHTML = ''; }
+    unmount: () => render(null, target)
   };
 };
 

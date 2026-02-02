@@ -161,7 +161,8 @@ export function renderToString(component: Function, props?: any): string;
 export function hydrate(
   component: Function,
   container: Element,
-  serverHTML?: string
+  serverHTML?: string,
+  handlers?: Record<string, Function>
 ): void;
 
 export function preloadComponent(componentPath: string): Promise<Function | null>;
