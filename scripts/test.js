@@ -1,12 +1,10 @@
-/**
- * MinimaJS Node Test Suite - Zero Dependencies
- */
+/** MinimaJS Node Test Suite - Zero Dependencies */
 
-import { createElement } from './src/minima-core.js';
-import { sanitizeText, html } from './src/minima-template.js';
-import { renderToString, injectSSRData } from './src/minima-ssr.js';
-import { defineComponent, withProps, Fragment, memo } from './src/minima-component.js';
-import { runLibModuleTests } from './tests/lib-modules.test.js';
+import { createElement } from '../src/minima-core.js';
+import { sanitizeText, html } from '../src/minima-template.js';
+import { renderToString, injectSSRData } from '../src/minima-ssr.js';
+import { defineComponent, withProps, Fragment, memo } from '../src/minima-component.js';
+import { runLibModuleTests } from '../tests/lib-modules.test.js';
 
 let passed = 0, failed = 0;
 const test = (name, fn) => {

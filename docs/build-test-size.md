@@ -8,7 +8,7 @@ All commands run from the repo root.
 npm test
 ```
 
-Runs `node test.js`.
+Runs `node scripts/test.js`.
 
 ## Build (minify to `dist/`)
 
@@ -16,7 +16,7 @@ Runs `node test.js`.
 npm run build
 ```
 
-Runs `node build.js`, which minifies these sources:
+Runs `node scripts/build.js`, which minifies these sources:
 
 - `src/minima-core.js` → `dist/minima-core.min.js`
 - `src/minima-api.js` → `dist/minima-api.min.js`

@@ -50,9 +50,9 @@
   ],
   "scripts": {
     "build": "npm run build:minify",
-    "build:minify": "node build.js",
-    "test": "node test.js",
-    "dev": "python -m http.server 8080 || npx serve .",
+    "build:minify": "node scripts/build.js",
+    "test": "node scripts/test.js",
+    "dev": "node scripts/dev.js",
     "prepublishOnly": "npm run build && npm test",
     "size": "node -e \"console.log('Bundle sizes:'); require('fs').readdirSync('dist').forEach(f => console.log(f + ':', Math.round(require('fs').statSync('dist/' + f).size/1024) + 'KB'))\""
   },

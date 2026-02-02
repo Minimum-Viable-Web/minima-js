@@ -1,7 +1,5 @@
 #!/usr/bin/env node
-/**
- * MinimaJS Build Script - Creates minified versions
- */
+/** MinimaJS Build Script - Creates minified versions */
 
 import fs from 'fs';
 import path from 'path';
