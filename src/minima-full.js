@@ -13,7 +13,7 @@ let hookIndex = 0;
 let components = new WeakMap();
 
 // Cached constants
-const CHILDREN = 'children';
+const CHILDREN = 'children', KEY = 'key';
 const ERR_OUTSIDE = 'outside component';
 
 const depsEqual = (a, b) => {
@@ -47,12 +47,15 @@ let currentSuspenseHandler = null;
 
 // Virtual Node creation
 const createElement = (type, props = {}, ...children) => {
+  const isVNode = (v) => v && typeof v === 'object' && 'type' in v && 'props' in v;
+  if (props == null) props = {};
+  else if (typeof props !== 'object' || Array.isArray(props) || isVNode(props)) (children = [props, ...children], props = {});
   const flatChildren = children.flat();
   const vnodeProps = props && Object.keys(props).length > 0
     ? { ...props, [CHILDREN]: flatChildren }
     : { [CHILDREN]: flatChildren };
 
-  const vnode = { type, props: vnodeProps, key: props?.key || null };
+  const vnode = { type, props: vnodeProps, key: props?.key ?? null };
 
   // Validate keys in children for duplicates (only when > 1 child)
   if (flatChildren.length > 1) {
@@ -72,13 +75,14 @@ const createElement = (type, props = {}, ...children) => {
 // Component state hook
 const useState = (initial) => {
   const [comp, idx, hook] = initHook('useState');
+  const owner = currentComponent;
   if (hook.state === undefined) hook.state = initial;
 
   const setState = (newState) => {
     const value = typeof newState === 'function' ? newState(hook.state) : newState;
     if (hook.state !== value) {
       hook.state = value;
-      scheduleRender(currentComponent);
+      scheduleRender(owner);
     }
   };
 
@@ -150,9 +154,10 @@ const useTransition = () => {
 // Deferred value hook for concurrent updates
 const useDeferredValue = (value) => {
   const [, , hook] = initHook('useDeferredValue');
+  const owner = currentComponent;
   if (hook.deferredValue !== value) {
     hook.deferredValue = value;
-    scheduleRender(currentComponent);
+    scheduleRender(owner);
   }
   return hook.deferredValue;
 };
@@ -183,6 +188,7 @@ const Suspense = ({ children, fallback }) => {
 
 // Rendering queue
 const scheduleRender = (component) => {
+  if (!component || !components.has(component)) return;
   renderQueue.add(component);
   if (!isRendering) {
     isRendering = true;
@@ -205,8 +211,10 @@ const scheduleRender = (component) => {
 
 // Virtual DOM diffing algorithm with key-based reconciliation
 const diff = (oldVNode, newVNode, container, index = 0) => {
-  if (!newVNode && oldVNode) return removeNode(oldVNode, container, index);
-  if (newVNode && !oldVNode) return addNode(newVNode, container);
+  const empty = (v) => v == null || v === false;
+  if (empty(oldVNode) && empty(newVNode)) return;
+  if (empty(newVNode) && !empty(oldVNode)) return removeNode(oldVNode, container, index);
+  if (!empty(newVNode) && empty(oldVNode)) return addNode(newVNode, container);
   if (oldVNode.type !== newVNode.type) return replaceNode(newVNode, container, index);
 
   if (typeof newVNode === 'string' || typeof newVNode === 'number')
@@ -242,8 +250,8 @@ const updateTextNode = (oldVNode, newVNode, container, index) => {
 
 // Children reconciliation
 const diffChildren = (parent, oldChildren, newChildren) => {
-  const { oldKeyed, oldKeyless } = groupChildren(oldChildren);
-  const { newKeyed, newKeyless } = groupChildren(newChildren);
+  const { keyed: oldKeyed, keyless: oldKeyless } = groupChildren(oldChildren);
+  const { keyed: newKeyed, keyless: newKeyless } = groupChildren(newChildren);
 
   processKeyedChildren(parent, oldKeyed, newKeyed);
   processKeylessChildren(parent, oldKeyless, newKeyless);
@@ -254,10 +262,20 @@ const groupChildren = (children) => {
   const keyed = new Map(), keyless = [];
   children.forEach((child, i) => {
     const key = child?.key;
-    if (key) keyed.set(key, { child, index: i });
+    if (key != null) keyed.set(String(key), { child, index: i });
     else keyless.push({ child, index: i });
   });
   return { keyed, keyless };
+};
+
+// Find DOM index by keyed element marker
+const findDOMIndexByKey = (parent, key) => {
+  const k = String(key);
+  for (let i = 0; i < parent.childNodes.length; i++) {
+    const n = parent.childNodes[i];
+    if (n?.dataset?.minimaKey === k) return i;
+  }
+  return -1;
 };
 
 // Process keyed children reconciliation
@@ -265,9 +283,14 @@ const processKeyedChildren = (parent, oldKeyed, newKeyed) => {
   const allKeys = new Set([...oldKeyed.keys(), ...newKeyed.keys()]);
   allKeys.forEach(key => {
     const old = oldKeyed.get(key), nw = newKeyed.get(key);
-    if (!nw) return removeKeyedChild(parent, old);
+    if (!nw) {
+      const domIndex = findDOMIndexByKey(parent, key);
+      if (domIndex >= 0) parent.removeChild(parent.childNodes[domIndex]);
+      return;
+    }
     if (!old) return addKeyedChild(parent, nw, newKeyed, key);
-    diff(old.child, nw.child, parent, old.index);
+    const domIndex = findDOMIndexByKey(parent, key);
+    diff(old.child, nw.child, parent, domIndex >= 0 ? domIndex : old.index);
   });
 };
 
@@ -282,7 +305,7 @@ const removeKeyedChild = (parent, old) => {
 // Add keyed child to DOM
 const addKeyedChild = (parent, nw, newKeyed, key) => {
   const beforeKey = findBeforeKey(newKeyed, key);
-  const beforeIndex = beforeKey ? findDOMIndex(parent, newKeyed.get(beforeKey).index) : -1;
+  const beforeIndex = beforeKey ? findDOMIndexByKey(parent, beforeKey) : -1;
   const domElement = createDOMElement(nw.child);
   if (beforeIndex >= 0) parent.insertBefore(domElement, parent.childNodes[beforeIndex]);
   else parent.appendChild(domElement);
@@ -320,21 +343,14 @@ const findBeforeKey = (keyedMap, targetKey) => {
 
 // Create DOM element from VNode
 const createDOMElement = (vnode) => {
-  if (typeof vnode === 'string' || typeof vnode === 'number') {
-    return document.createTextNode(vnode);
-  }
-
-  if (typeof vnode.type === 'function') {
-    return renderFunction(vnode);
-  }
-
+  if (vnode == null || vnode === false) return document.createTextNode('');
+  if (typeof vnode === 'string' || typeof vnode === 'number') return document.createTextNode(vnode);
+  if (typeof vnode === 'function') vnode = createElement(vnode);
+  if (typeof vnode.type === 'function') return renderFunction(vnode);
   const element = document.createElement(vnode.type);
+  if (vnode.key != null) element.dataset.minimaKey = String(vnode.key);
   updateProps(element, {}, vnode.props);
-
-  (vnode.props[CHILDREN] || []).forEach(child => {
-    if (child != null) element.appendChild(createDOMElement(child));
-  });
-
+  (vnode.props?.[CHILDREN] || []).forEach(child => child != null && element.appendChild(createDOMElement(child)));
   return element;
 };
 
@@ -400,7 +416,7 @@ const updateProps = (element, oldProps = {}, newProps = {}) => {
 
   // Remove old props
   oldKeys.forEach(key => {
-    if (key === CHILDREN || key in newProps) return;
+    if (key === CHILDREN || key === KEY || key in newProps) return;
     if (key.startsWith('on')) {
       element.removeEventListener(key.slice(2).toLowerCase(), oldProps[key]);
     } else if (key in element) {
@@ -412,7 +428,7 @@ const updateProps = (element, oldProps = {}, newProps = {}) => {
 
   // Set new props
   newKeys.forEach(key => {
-    if (key === CHILDREN) return;
+    if (key === CHILDREN || key === KEY) return;
     const oldValue = oldProps[key], newValue = newProps[key];
     if (oldValue === newValue) return;
 
@@ -430,11 +446,14 @@ const updateProps = (element, oldProps = {}, newProps = {}) => {
 
 // Main render function
 const render = (vnode, container) => {
-  if (container._minimaVNode) {
-    diff(container._minimaVNode, vnode, container, 0);
-  } else {
-    container.appendChild(createDOMElement(vnode));
+  if (typeof vnode === 'function') vnode = createElement(vnode);
+  if (vnode == null || vnode === false) {
+    if (container._minimaVNode) diff(container._minimaVNode, null, container, 0);
+    container._minimaVNode = null;
+    return;
   }
+  if (container._minimaVNode) diff(container._minimaVNode, vnode, container, 0);
+  else container.appendChild(createDOMElement(vnode));
   container._minimaVNode = vnode;
 };
 
@@ -678,7 +697,6 @@ const disableDevTools = () => {
 // XSS Prevention - Comprehensive sanitization rules
 const DANGEROUS_TAGS = new Set([
   'script', 'iframe', 'object', 'embed', 'applet', 'meta', 'link', 'style',
-  'form', 'input', 'button', 'select', 'textarea', 'option', 'optgroup'
 ]);
 
 const DANGEROUS_ATTRS = new Set([
@@ -707,6 +725,11 @@ const URL_ATTRS = new Set([
   'icon', 'manifest', 'content', 'cite', 'longdesc', 'usemap', 'formtarget'
 ]);
 
+// Void/self-closing tags in HTML (don’t require closing tag)
+const VOID_TAGS = new Set([
+  'area','base','br','col','embed','hr','img','input','link','meta','param','source','track','wbr'
+]);
+
 // Sanitize text content
 const ESC_MAP = { '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#x27;', '/': '&#x2F;' };
 const sanitizeText = (text) => {
@@ -725,7 +748,7 @@ const isValidUrl = (url) => {
 // Sanitize attribute value
 const sanitizeAttr = (name, value) => {
   const nameLower = name.toLowerCase();
-  if (DANGEROUS_ATTRS.has(nameLower)) return null;
+  if (DANGEROUS_ATTRS.has(nameLower) && !(typeof value === 'string' && value.includes('__HANDLER_'))) return null;
   if (URL_ATTRS.has(nameLower) && !isValidUrl(value)) return null;
   return typeof value === 'string' ? value.replace(/["']/g, (m) => m === '"' ? '&quot;' : '&#x27;') : value;
 };
@@ -745,7 +768,7 @@ const parseHTML = (html) => {
       const tagName = (isClosing ? tagContent.slice(1) : tagContent).split(/\s/)[0].toLowerCase();
 
       tokens.push(isClosing ? { type: 'close', tag: tagName } :
-        { type: 'open', tag: tagName, attrs: parseAttrs(tagContent.slice(tagName.length)), self: tagContent.endsWith('/') });
+        { type: 'open', tag: tagName, attrs: parseAttrs(tagContent.slice(tagName.length)), self: tagContent.endsWith('/') || VOID_TAGS.has(tagName) });
       i = tagEnd + 1;
     } else {
       const nextTag = html.indexOf('<', i);
@@ -773,14 +796,24 @@ const parseAttrs = (attrStr) => {
 };
 
 // Convert HTML tokens to VNode tree
-const tokensToVNode = (tokens) => {
+const tokensToVNode = (tokens, vholes) => {
   const stack = [{ children: [] }];
 
   tokens.forEach(token => {
     const current = stack[stack.length - 1];
 
     if (token.type === 'text') {
-      current.children.push(sanitizeText(token.content));
+      const s = token.content;
+      let last = 0;
+      s.replace(/__VNODE_(\d+)__/g, (m, id, idx) => {
+        const pre = s.slice(last, idx);
+        if (pre) current.children.push(sanitizeText(pre));
+        const v = vholes?.[+id];
+        if (v != null && v !== false) current.children.push(v);
+        last = idx + m.length;
+      });
+      const rest = s.slice(last);
+      if (rest) current.children.push(sanitizeText(rest));
     } else if (token.type === 'open' && !DANGEROUS_TAGS.has(token.tag)) {
       const element = { type: token.tag, props: { ...token.attrs }, children: [] };
       current.children.push(element);
@@ -795,7 +828,8 @@ const tokensToVNode = (tokens) => {
 
 // Template literal processor
 const html = (strings, ...values) => {
-  let result = '';
+  let result = '', vholes = [], vi = 0;
+  const putV = (v) => (vholes[vi] = v, `__VNODE_${vi++}__`);
   strings.forEach((str, i) => {
     result += str;
     if (i < values.length) {
@@ -803,14 +837,18 @@ const html = (strings, ...values) => {
       if (typeof value === 'function') {
         result += `__HANDLER_${i}__`;
       } else if (Array.isArray(value)) {
-        value.forEach(v => result += typeof v === 'string' ? sanitizeText(v) : '__VNODE__');
+        value.forEach(v => {
+          if (v == null || v === false) return;
+          result += (typeof v === 'string' || typeof v === 'number') ? sanitizeText(String(v)) : putV(v);
+        });
       } else {
-        result += sanitizeText(value);
+        if (value == null || value === false) return;
+        result += (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') ? sanitizeText(String(value)) : putV(value);
       }
     }
   });
 
-  const vnodes = tokensToVNode(parseHTML(result));
+  const vnodes = tokensToVNode(parseHTML(result), vholes);
 
   const processVNode = (vnode) => {
     if (typeof vnode === 'string') {
@@ -836,12 +874,13 @@ const html = (strings, ...values) => {
         }
       });
 
-      if (vnode.children?.length) {
-        vnode.children = vnode.children.map(processVNode);
-        vnode.props.children = vnode.children;
+      const kids = Array.isArray(vnode.children) ? vnode.children : (Array.isArray(vnode.props.children) ? vnode.props.children : []);
+      if (kids.length) {
+        const next = kids.map(processVNode);
+        vnode.props.children = next;
+        return createElement(vnode.type, vnode.props, ...next);
       }
-
-      return createElement(vnode.type, vnode.props, ...vnode.children);
+      return createElement(vnode.type, vnode.props);
     }
 
     return vnode;
@@ -1099,7 +1138,7 @@ const inputState = (initialValue = '') => {
 // Form helpers
 const formState = (initialValues = {}) => {
   const [values, setValues] = useState(initialValues);
-  const update = (field) => (e) => setValues({ ...values, [field]: e.target.value });
+  const update = (field) => (e) => setValues(v => ({ ...v, [field]: e.target.value }));
   return [values, update, () => setValues(initialValues)];
 };
 
@@ -1220,7 +1259,7 @@ const quickForm = (config) => {
       input({
         type: fieldType,
         value: values[fieldName] || '',
-        onChange: updateValue(fieldName),
+        onInput: updateValue(fieldName),
         placeholder: fieldLabel
       })
     ]);
@@ -1234,8 +1273,8 @@ const quickForm = (config) => {
   }, [
     ...fields,
     div(cls('form-actions'), [
-      button('Submit'),
-      when(config.showReset, button({ onClick: resetForm }, 'Reset'))
+      button({ type: 'submit' }, 'Submit'),
+      when(config.showReset, button({ type: 'button', onClick: resetForm }, 'Reset'))
     ])
   ]);
 };
@@ -1245,11 +1284,8 @@ const quickList = (items, renderItem, options = {}) =>
     items.map((item, index) => li({ key: item.id || index }, renderItem(item, index)))
   );
 
-const quickModal = (isOpen, content, options = {}) => {
-  const [show, setShow] = useState(isOpen);
-  useEffect(() => setShow(isOpen), [isOpen]);
-
-  return when(show,
+const quickModal = (isOpen, content, options = {}) =>
+  when(isOpen,
     div({ ...cls('modal-overlay'), onClick: () => options.onClose?.() }, [
       div({ ...cls('modal-content'), onClick: e => e.stopPropagation() }, [
         when(options.showClose, button({ ...cls('modal-close'), onClick: () => options.onClose?.() }, '×')),
@@ -1257,7 +1293,6 @@ const quickModal = (isOpen, content, options = {}) => {
       ])
     ])
   );
-};
 
 const quickCard = (title, content, actions = []) =>
   div(cls('card'), [
@@ -1357,78 +1392,7 @@ const $div = $el('div'), $span = $el('span'), $p = $el('p'), $button = $el('butt
 const $input = $el('input'), $form = $el('form'), $h1 = $el('h1'), $h2 = $el('h2'), $h3 = $el('h3');
 
 // =============================================================================
-// 3. PATTERN MACROS - Complete features in minimal code
-// =============================================================================
-
-const createApp = {
-  // Complete todo app in one call
-  todo: (config = {}) => {
-    const [todos, setTodos] = useState(config.initialTodos || []);
-    const [input, setInput] = useState('');
-
-    const addTodo = () => {
-      if (input.trim()) {
-        setTodos([...todos, { id: Date.now(), text: input, done: false }]);
-        setInput('');
-      }
-    };
-
-    return div(cls('todo-app'), [
-      h1('Todo App'),
-      div(cls('todo-input'), [
-        input({
-          value: input,
-          onChange: e => setInput(e.target.value),
-          placeholder: 'Add new todo...',
-          onKeyPress: e => e.key === 'Enter' && addTodo()
-        }),
-        button({ onClick: addTodo }, 'Add')
-      ]),
-      quickList(todos, todo =>
-        div({ ...cls(todo.done ? 'todo-item done' : 'todo-item'), key: todo.id }, [
-          input({
-            type: 'checkbox',
-            checked: todo.done,
-            onChange: () => setTodos(todos.map(t => t.id === todo.id ? { ...t, done: !t.done } : t))
-          }),
-          span(todo.text),
-          button({ onClick: () => setTodos(todos.filter(t => t.id !== todo.id)) }, '×')
-        ])
-      )
-    ]);
-  },
-
-  // Complete counter app
-  counter: (config = {}) => {
-    const [count, setCount] = useState(config.initialValue || 0);
-    const step = config.step || 1, resetValue = config.initialValue || 0;
-
-    return div(cls('counter-app'), [
-      h1(config.title || 'Counter'),
-      div(cls('counter-display'), count),
-      div(cls('counter-controls'), [
-        button({ onClick: () => setCount(count - step) }, '-'),
-        button({ onClick: () => setCount(resetValue) }, 'Reset'),
-        button({ onClick: () => setCount(count + step) }, '+')
-      ])
-    ]);
-  },
-
-  // Complete dashboard layout
-  dashboard: (config) => {
-    const { header, sidebar, widgets } = config;
-    return div(cls('dashboard'), [
-      when(header, div(cls('dashboard-header'), header)),
-      div(cls('dashboard-content'), [
-        when(sidebar, div(cls('dashboard-sidebar'), sidebar)),
-        div(cls('dashboard-main'), widgets?.map((widget, index) => div({ ...cls('dashboard-widget'), key: index }, widget)))
-      ])
-    ]);
-  }
-};
-
-// =============================================================================
-// 4. ERROR RECOVERY - Self-correcting APIs
+// 3. ERROR RECOVERY - Self-correcting APIs
 // =============================================================================
 
 const safeRender = (component, target) => {
@@ -1483,12 +1447,14 @@ class PageBuilder {
   }
 
   header(builder) {
-    this.headerContent = typeof builder === 'function' ? builder(new NavBuilder()) : builder;
+    const v = typeof builder === 'function' ? builder(new NavBuilder()) : builder;
+    this.headerContent = v?.build ? v.build() : v;
     return this;
   }
 
   main(builder) {
-    this.mainContent = typeof builder === 'function' ? builder(new SectionBuilder()) : builder;
+    const v = typeof builder === 'function' ? builder(new SectionBuilder()) : builder;
+    this.mainContent = v?.build ? v.build() : v;
     return this;
   }
 
@@ -1498,7 +1464,8 @@ class PageBuilder {
   }
 
   footer(builder) {
-    this.footerContent = typeof builder === 'function' ? builder(new FooterBuilder()) : builder;
+    const v = typeof builder === 'function' ? builder(new FooterBuilder()) : builder;
+    this.footerContent = v?.build ? v.build() : v;
     return this;
   }
 
@@ -1636,9 +1603,6 @@ const llmLayer = {
   // Chain syntax
   $, $div, $span, $p, $button, $input, $form, $h1, $h2, $h3,
 
-  // Pattern macros
-  createApp,
-
   // Error recovery
   safeRender, safeComponent, tryRender,
 
@@ -1668,7 +1632,7 @@ const minimaFull = {
 
   // LLM
   quickForm, quickList, quickModal, quickCard, quickTable, $,
-  $div, $span, $p, $button, $input, $form, $h1, $h2, $h3, createApp,
+  $div, $span, $p, $button, $input, $form, $h1, $h2, $h3,
   safeRender, safeComponent, tryRender, page, builder, PageBuilder,
   NavBuilder, SectionBuilder, FooterBuilder, cls
 };
@@ -1692,7 +1656,7 @@ export {
 
   // LLM features
   quickForm, quickList, quickModal, quickCard, quickTable, $,
-  $div, $span, $p, $button, $input, $form, $h1, $h2, $h3, createApp,
+  $div, $span, $p, $button, $input, $form, $h1, $h2, $h3,
   safeRender, safeComponent, tryRender, page, builder, PageBuilder,
   NavBuilder, SectionBuilder, FooterBuilder, cls
 };

@@ -41,7 +41,7 @@ const quickForm = (config) => {
       input({
         type: fieldType,
         value: values[fieldName] || '',
-        onChange: updateValue(fieldName),
+        onInput: updateValue(fieldName),
         placeholder: fieldLabel
       })
     ]);
@@ -55,8 +55,8 @@ const quickForm = (config) => {
   }, [
     ...fields,
     div(cls('form-actions'), [
-      button('Submit'),
-      when(config.showReset, button({ onClick: resetForm }, 'Reset'))
+      button({ type: 'submit' }, 'Submit'),
+      when(config.showReset, button({ type: 'button', onClick: resetForm }, 'Reset'))
     ])
   ]);
 };
@@ -66,11 +66,8 @@ const quickList = (items, renderItem, options = {}) =>
     items.map((item, index) => li({ key: item.id || index }, renderItem(item, index)))
   );
 
-const quickModal = (isOpen, content, options = {}) => {
-  const [show, setShow] = useState(isOpen);
-  useEffect(() => setShow(isOpen), [isOpen]);
-  
-  return when(show, 
+const quickModal = (isOpen, content, options = {}) =>
+  when(isOpen,
     div({ ...cls('modal-overlay'), onClick: () => options.onClose?.() }, [
       div({ ...cls('modal-content'), onClick: e => e.stopPropagation() }, [
         when(options.showClose, button({ ...cls('modal-close'), onClick: () => options.onClose?.() }, '×')),
@@ -78,7 +75,6 @@ const quickModal = (isOpen, content, options = {}) => {
       ])
     ])
   );
-};
 
 const quickCard = (title, content, actions = []) => 
   div(cls('card'), [
@@ -178,78 +174,7 @@ const $div = $el('div'), $span = $el('span'), $p = $el('p'), $button = $el('butt
 const $input = $el('input'), $form = $el('form'), $h1 = $el('h1'), $h2 = $el('h2'), $h3 = $el('h3');
 
 // =============================================================================
-// 3. PATTERN MACROS - Complete features in minimal code
-// =============================================================================
-
-const createApp = {
-  // Complete todo app in one call
-  todo: (config = {}) => {
-    const [todos, setTodos] = useState(config.initialTodos || []);
-    const [input, setInput] = useState('');
-
-    const addTodo = () => {
-      if (input.trim()) {
-        setTodos([...todos, { id: Date.now(), text: input, done: false }]);
-        setInput('');
-      }
-    };
-
-    return div(cls('todo-app'), [
-      h1('Todo App'),
-      div(cls('todo-input'), [
-        input({
-          value: input,
-          onChange: e => setInput(e.target.value),
-          placeholder: 'Add new todo...',
-          onKeyPress: e => e.key === 'Enter' && addTodo()
-        }),
-        button({ onClick: addTodo }, 'Add')
-      ]),
-      quickList(todos, todo =>
-        div({ ...cls(todo.done ? 'todo-item done' : 'todo-item'), key: todo.id }, [
-          input({
-            type: 'checkbox',
-            checked: todo.done,
-            onChange: () => setTodos(todos.map(t => t.id === todo.id ? { ...t, done: !t.done } : t))
-          }),
-          span(todo.text),
-          button({ onClick: () => setTodos(todos.filter(t => t.id !== todo.id)) }, '×')
-        ])
-      )
-    ]);
-  },
-  
-  // Complete counter app
-  counter: (config = {}) => {
-    const [count, setCount] = useState(config.initialValue || 0);
-    const step = config.step || 1, resetValue = config.initialValue || 0;
-
-    return div(cls('counter-app'), [
-      h1(config.title || 'Counter'),
-      div(cls('counter-display'), count),
-      div(cls('counter-controls'), [
-        button({ onClick: () => setCount(count - step) }, '-'),
-        button({ onClick: () => setCount(resetValue) }, 'Reset'),
-        button({ onClick: () => setCount(count + step) }, '+')
-      ])
-    ]);
-  },
-  
-  // Complete dashboard layout
-  dashboard: (config) => {
-    const { header, sidebar, widgets } = config;
-    return div(cls('dashboard'), [
-      when(header, div(cls('dashboard-header'), header)),
-      div(cls('dashboard-content'), [
-        when(sidebar, div(cls('dashboard-sidebar'), sidebar)),
-        div(cls('dashboard-main'), widgets?.map((widget, index) => div({ ...cls('dashboard-widget'), key: index }, widget)))
-      ])
-    ]);
-  }
-};
-
-// =============================================================================
-// 4. ERROR RECOVERY - Self-correcting APIs
+// 3. ERROR RECOVERY - Self-correcting APIs
 // =============================================================================
 
 const safeRender = (component, target) => {
@@ -304,12 +229,14 @@ class PageBuilder {
   }
   
   header(builder) {
-    this.headerContent = typeof builder === 'function' ? builder(new NavBuilder()) : builder;
+    const v = typeof builder === 'function' ? builder(new NavBuilder()) : builder;
+    this.headerContent = v?.build ? v.build() : v;
     return this;
   }
   
   main(builder) {
-    this.mainContent = typeof builder === 'function' ? builder(new SectionBuilder()) : builder;
+    const v = typeof builder === 'function' ? builder(new SectionBuilder()) : builder;
+    this.mainContent = v?.build ? v.build() : v;
     return this;
   }
   
@@ -319,7 +246,8 @@ class PageBuilder {
   }
   
   footer(builder) {
-    this.footerContent = typeof builder === 'function' ? builder(new FooterBuilder()) : builder;
+    const v = typeof builder === 'function' ? builder(new FooterBuilder()) : builder;
+    this.footerContent = v?.build ? v.build() : v;
     return this;
   }
   
@@ -397,9 +325,6 @@ const llmApi = {
   // Chain syntax
   $, $div, $span, $p, $button, $input, $form, $h1, $h2, $h3,
   
-  // Pattern macros
-  createApp,
-  
   // Error recovery
   safeRender, safeComponent, tryRender,
   
@@ -413,9 +338,6 @@ export {
   
   // Chain syntax
   $, $div, $span, $p, $button, $input, $form, $h1, $h2, $h3,
-  
-  // Pattern macros
-  createApp,
   
   // Error recovery
   safeRender, safeComponent, tryRender,

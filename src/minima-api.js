@@ -108,7 +108,7 @@ const inputState = (initialValue = '') => {
 // Form helpers
 const formState = (initialValues = {}) => {
   const [values, setValues] = useState(initialValues);
-  const update = (field) => (e) => setValues({ ...values, [field]: e.target.value });
+  const update = (field) => (e) => setValues(v => ({ ...v, [field]: e.target.value }));
   return [values, update, () => setValues(initialValues)];
 };
 

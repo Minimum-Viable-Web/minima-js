@@ -15,7 +15,7 @@ export const runLibModuleTests = (test, eq, ok) => {
   test('llm: exports quick builders', () => {
     ok(typeof llm.quickForm === 'function', 'quickForm is function');
     ok(typeof llm.quickList === 'function', 'quickList is function');
-    ok(typeof llm.createApp === 'object', 'createApp object exists');
+    ok(typeof llm.quickModal === 'function', 'quickModal is function');
   });
 
   // Devtools

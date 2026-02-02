@@ -8,7 +8,7 @@ let hookIndex = 0;
 let components = new WeakMap();
 
 // Cached constants
-const CHILDREN = 'children';
+const CHILDREN = 'children', KEY = 'key';
 const ERR_OUTSIDE = 'outside component';
 
 const depsEqual = (a, b) => {
@@ -42,6 +42,9 @@ let currentSuspenseHandler = null;
 
 // Virtual Node creation
 const createElement = (type, props = {}, ...children) => {
+  const isVNode = (v) => v && typeof v === 'object' && 'type' in v && 'props' in v;
+  if (props == null) props = {};
+  else if (typeof props !== 'object' || Array.isArray(props) || isVNode(props)) (children = [props, ...children], props = {});
   const flatChildren = children.flat();
 
   // Create props object only if needed
@@ -49,11 +52,7 @@ const createElement = (type, props = {}, ...children) => {
     ? { ...props, [CHILDREN]: flatChildren }
     : { [CHILDREN]: flatChildren };
 
-  const vnode = {
-    type,
-    props: vnodeProps,
-    key: props?.key || null
-  };
+  const vnode = { type, props: vnodeProps, key: props?.key ?? null };
 
   // Validate keys in children for duplicates (only when > 1 child)
   if (flatChildren.length > 1) {
@@ -76,13 +75,14 @@ const createElement = (type, props = {}, ...children) => {
 // Component state hook
 const useState = (initial) => {
   const [comp, idx, hook] = initHook('useState');
+  const owner = currentComponent;
   if (hook.state === undefined) hook.state = initial;
   
   const setState = (newState) => {
     const value = typeof newState === 'function' ? newState(hook.state) : newState;
     if (hook.state !== value) {
       hook.state = value;
-      scheduleRender(currentComponent);
+      scheduleRender(owner);
     }
   };
   
@@ -154,9 +154,10 @@ const useTransition = () => {
 // Deferred value hook for concurrent updates
 const useDeferredValue = (value) => {
   const [, , hook] = initHook('useDeferredValue');
+  const owner = currentComponent;
   if (hook.deferredValue !== value) {
     hook.deferredValue = value;
-    scheduleRender(currentComponent);
+    scheduleRender(owner);
   }
   return hook.deferredValue;
 };
@@ -187,6 +188,7 @@ const Suspense = ({ children, fallback }) => {
 
 // Rendering queue
 const scheduleRender = (component) => {
+  if (!component || !components.has(component)) return;
   renderQueue.add(component);
   if (!isRendering) {
     isRendering = true;
@@ -209,8 +211,10 @@ const scheduleRender = (component) => {
 
 // Virtual DOM diffing algorithm with key-based reconciliation
 const diff = (oldVNode, newVNode, container, index = 0) => {
+  const empty = (v) => v == null || v === false;
+  if (empty(oldVNode) && empty(newVNode)) return;
   // Remove old node
-  if (!newVNode && oldVNode) {
+  if (empty(newVNode) && !empty(oldVNode)) {
     container.removeChild(container.childNodes[index]);
     // Cleanup component if it was a function component
     if (oldVNode.type && typeof oldVNode.type === 'function') {
@@ -221,7 +225,7 @@ const diff = (oldVNode, newVNode, container, index = 0) => {
   }
 
   // Add new node
-  if (newVNode && !oldVNode) {
+  if (!empty(newVNode) && empty(oldVNode)) {
     container.appendChild(createDOMElement(newVNode));
     return;
   }
@@ -253,7 +257,7 @@ const diff = (oldVNode, newVNode, container, index = 0) => {
   const oldKeyless = [];
   oldChildren.forEach((child, i) => {
     const key = child?.key;
-    if (key) oldKeyed.set(key, { child, index: i });
+    if (key != null) oldKeyed.set(String(key), { child, index: i });
     else oldKeyless.push({ child, index: i });
   });
 
@@ -261,20 +265,19 @@ const diff = (oldVNode, newVNode, container, index = 0) => {
   const newKeyless = [];
   newChildren.forEach((child, i) => {
     const key = child?.key;
-    if (key) newKeyed.set(key, { child, index: i });
+    if (key != null) newKeyed.set(String(key), { child, index: i });
     else newKeyless.push({ child, index: i });
   });
 
   // Process keyed children first
   const allKeys = new Set([...oldKeyed.keys(), ...newKeyed.keys()]);
   allKeys.forEach(key => {
-    const old = oldKeyed.get(key);
-    const nw = newKeyed.get(key);
+    const old = oldKeyed.get(key), nw = newKeyed.get(key);
 
     if (!nw) {
       // Key removed - find and remove from DOM
       if (old) {
-        const domIndex = findDOMIndex(node, old.index);
+        const domIndex = findDOMIndexByKey(node, key);
         if (domIndex >= 0) {
           node.removeChild(node.childNodes[domIndex]);
         }
@@ -282,7 +285,7 @@ const diff = (oldVNode, newVNode, container, index = 0) => {
     } else if (!old) {
       // Key added - insert at correct position
       const beforeKey = findBeforeKey(newKeyed, key);
-      const beforeIndex = beforeKey ? findDOMIndex(node, newKeyed.get(beforeKey).index) : -1;
+      const beforeIndex = beforeKey ? findDOMIndexByKey(node, beforeKey) : -1;
       const domElement = createDOMElement(nw.child);
       if (beforeIndex >= 0) {
         node.insertBefore(domElement, node.childNodes[beforeIndex]);
@@ -291,7 +294,8 @@ const diff = (oldVNode, newVNode, container, index = 0) => {
       }
     } else {
       // Key exists - diff in place
-      diff(old.child, nw.child, node, old.index);
+      const domIndex = findDOMIndexByKey(node, key);
+      diff(old.child, nw.child, node, domIndex >= 0 ? domIndex : old.index);
     }
   });
 
@@ -314,6 +318,16 @@ const findDOMIndex = (parent, vnodeIndex) => {
   return domIndex < children.length ? domIndex : -1;
 };
 
+// Find DOM index by keyed element marker
+const findDOMIndexByKey = (parent, key) => {
+  const k = String(key);
+  for (let i = 0; i < parent.childNodes.length; i++) {
+    const n = parent.childNodes[i];
+    if (n?.dataset?.minimaKey === k) return i;
+  }
+  return -1;
+};
+
 // Helper function to find the key that should come before this one
 const findBeforeKey = (keyedMap, targetKey) => {
   const keys = Array.from(keyedMap.keys());
@@ -326,21 +340,14 @@ const findBeforeKey = (keyedMap, targetKey) => {
 
 // Create DOM element from VNode
 const createDOMElement = (vnode) => {
-  if (typeof vnode === 'string' || typeof vnode === 'number') {
-    return document.createTextNode(vnode);
-  }
-  
-  if (typeof vnode.type === 'function') {
-    return renderFunction(vnode);
-  }
-  
+  if (vnode == null || vnode === false) return document.createTextNode('');
+  if (typeof vnode === 'string' || typeof vnode === 'number') return document.createTextNode(vnode);
+  if (typeof vnode === 'function') vnode = createElement(vnode);
+  if (typeof vnode.type === 'function') return renderFunction(vnode);
   const element = document.createElement(vnode.type);
+  if (vnode.key != null) element.dataset.minimaKey = String(vnode.key);
   updateProps(element, {}, vnode.props);
-  
-  (vnode.props[CHILDREN] || []).forEach(child => {
-    if (child != null) element.appendChild(createDOMElement(child));
-  });
-  
+  (vnode.props?.[CHILDREN] || []).forEach(child => child != null && element.appendChild(createDOMElement(child)));
   return element;
 };
 
@@ -408,7 +415,7 @@ const updateProps = (element, oldProps = {}, newProps = {}) => {
   // Remove old props (only if not in new props)
   for (let i = 0; i < oldKeys.length; i++) {
     const key = oldKeys[i];
-    if (key === CHILDREN || key in newProps) continue;
+    if (key === CHILDREN || key === KEY || key in newProps) continue;
 
     if (key.startsWith('on')) {
       element.removeEventListener(key.substring(2).toLowerCase(), oldProps[key]);
@@ -422,7 +429,7 @@ const updateProps = (element, oldProps = {}, newProps = {}) => {
   // Set new props (only if different from old)
   for (let i = 0; i < newKeys.length; i++) {
     const key = newKeys[i];
-    if (key === CHILDREN) continue;
+    if (key === CHILDREN || key === KEY) continue;
 
     const oldValue = oldProps[key];
     const newValue = newProps[key];
@@ -443,11 +450,14 @@ const updateProps = (element, oldProps = {}, newProps = {}) => {
 
 // Main render function
 const render = (vnode, container) => {
-  if (container._minimaVNode) {
-    diff(container._minimaVNode, vnode, container, 0);
-  } else {
-    container.appendChild(createDOMElement(vnode));
+  if (typeof vnode === 'function') vnode = createElement(vnode);
+  if (vnode == null || vnode === false) {
+    if (container._minimaVNode) diff(container._minimaVNode, null, container, 0);
+    container._minimaVNode = null;
+    return;
   }
+  if (container._minimaVNode) diff(container._minimaVNode, vnode, container, 0);
+  else container.appendChild(createDOMElement(vnode));
   container._minimaVNode = vnode;
 };
 

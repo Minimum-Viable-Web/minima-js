@@ -3,7 +3,7 @@
  */
 
 import { createElement } from './src/minima-core.js';
-import { sanitizeText } from './src/minima-template.js';
+import { sanitizeText, html } from './src/minima-template.js';
 import { renderToString, injectSSRData } from './src/minima-ssr.js';
 import { defineComponent, withProps, Fragment, memo } from './src/minima-component.js';
 import { runLibModuleTests } from './tests/lib-modules.test.js';
@@ -58,6 +58,17 @@ test('handles null props', () => {
   ok(v.props.children, 'has children');
 });
 
+test('treats array second arg as children', () => {
+  const v = createElement('div', ['a', 'b']);
+  eq(v.props.children.length, 2, 'children count');
+  eq(v.props.children[0], 'a', 'first child');
+});
+
+test('preserves key=0', () => {
+  const v = createElement('li', { key: 0 }, 'Item');
+  eq(v.key, 0, 'key');
+});
+
 // sanitizeText tests
 console.log('\n-- Template: sanitizeText --');
 test('escapes < and >', () => {
@@ -86,6 +97,20 @@ test('blocks XSS script tags', () => {
 test('blocks XSS event handlers', () => {
   const result = sanitizeText('<img onerror="alert(1)">');
   ok(!result.includes('<img'), 'escaped');
+});
+
+// html template tests
+console.log('\n-- Template: html --');
+test('embeds VNodes in templates', () => {
+  const v = html`<div>${createElement('span', null, 'X')}</div>`;
+  eq(v.type, 'div', 'root');
+  eq(v.props.children[0].type, 'span', 'child vnode');
+});
+
+test('parses void tags without swallowing siblings', () => {
+  const v = html`<div><input value="a"><span>b</span></div>`;
+  eq(v.props.children[0].type, 'input', 'input first');
+  eq(v.props.children[1].type, 'span', 'span second');
 });
 
 // renderToString tests

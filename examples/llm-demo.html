@@ -80,7 +80,6 @@
     import { 
       quickForm, quickList, quickModal, quickCard, quickTable,
       $, $div, $span, $p, $button, $input, $form, $h1, $h2, $h3,
-      createApp as llmCreateApp,
       safeRender, safeComponent, tryRender,
       page, builder,
       div, h3, p, button, useState
@@ -191,21 +190,38 @@
     // =========================================================================
     
     const PatternDemo = () => {
+      const [todos, setTodos] = useState([
+        { id: 1, text: 'Try MinimaJS', done: true },
+        { id: 2, text: 'Build something awesome', done: false }
+      ]);
+      const [txt, setTxt] = useState('');
+      const [count, setCount] = useState(5);
+      const step = 2;
+      const add = () => txt.trim() && (setTodos([...todos, { id: Date.now(), text: txt, done: false }]), setTxt(''));
       return div([
         h3('Complete Todo App (one function call)'),
-        llmCreateApp.todo({
-          initialTodos: [
-            { id: 1, text: 'Try MinimaJS', done: true },
-            { id: 2, text: 'Build something awesome', done: false }
-          ]
-        }),
+        div({ className: 'todo-app' }, [
+          div({ className: 'todo-input' }, [
+            $input().attr('value', txt).onChange(e => setTxt(e.target.value)).attr('placeholder', 'Add new todo...').build(),
+            $button().text('Add').onClick(add).build()
+          ]),
+          ...todos.map(t => div({ className: t.done ? 'todo-item done' : 'todo-item', key: t.id }, [
+            $input().attr('type', 'checkbox').attr('checked', t.done).onChange(() => setTodos(todos.map(x => x.id === t.id ? { ...x, done: !x.done } : x))).build(),
+            $span().text(t.text).build(),
+            $button().text('×').onClick(() => setTodos(todos.filter(x => x.id !== t.id))).build()
+          ]))
+        ]),
         
         h3('Complete Counter App'),
-        llmCreateApp.counter({
-          title: 'LLM Counter',
-          initialValue: 5,
-          step: 2
-        })
+        div({ className: 'counter-app' }, [
+          $h1().text('LLM Counter').build(),
+          div({ className: 'counter-display' }, count),
+          div({ className: 'counter-controls' }, [
+            $button().text('-').onClick(() => setCount(count - step)).build(),
+            $button().text('Reset').onClick(() => setCount(5)).build(),
+            $button().text('+').onClick(() => setCount(count + step)).build()
+          ])
+        ])
       ]);
     };
 
@@ -217,7 +233,12 @@
       return page()
         .header(nav => nav
           .brand('MinimaJS')
-          .links(['Home', 'Docs', 'Examples'])
+          .links([
+            { href: '#template-demo', text: 'Template Builders' },
+            { href: '#chain-demo', text: 'Chain Syntax' },
+            { href: '#pattern-demo', text: 'Pattern Macros' },
+            { href: '#page-demo', text: 'Page Builder' }
+          ])
         )
         .main(content => content
           .section(h3('Welcome to Page Builder'))
@@ -240,16 +261,16 @@
     };
 
     // Render all demos
-    safeRender(TemplateDemo(), 'template-demo');
-    safeRender(ChainDemo(), 'chain-demo');
-    safeRender(PatternDemo(), 'pattern-demo');
-    safeRender(PageDemo(), 'page-demo');
+    safeRender(TemplateDemo, 'template-demo');
+    safeRender(ChainDemo, 'chain-demo');
+    safeRender(PatternDemo, 'pattern-demo');
+    safeRender(PageDemo, 'page-demo');
     
     console.log('MinimaJS LLM Layer loaded!');
     console.log('Available APIs:', {
       'Template Builders': 'quickForm, quickList, quickModal, quickCard, quickTable',
       'Chain Syntax': '$div(), $button(), etc.',
-      'Pattern Macros': 'llmCreateApp.todo(), llmCreateApp.counter()',
+      'Pattern Macros': '(moved to examples)',
       'Error Recovery': 'safeRender(), safeComponent(), tryRender()',
       'Page Builder': 'page().header().main().footer()'
     });

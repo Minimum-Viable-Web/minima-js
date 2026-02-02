@@ -7,7 +7,6 @@ import { createElement } from './minima-core.js';
 // XSS Prevention - Comprehensive sanitization rules
 const DANGEROUS_TAGS = new Set([
   'script', 'iframe', 'object', 'embed', 'applet', 'meta', 'link', 'style',
-  'form', 'input', 'button', 'select', 'textarea', 'option', 'optgroup'
 ]);
 
 const DANGEROUS_ATTRS = new Set([
@@ -36,6 +35,11 @@ const URL_ATTRS = new Set([
   'icon', 'manifest', 'content', 'cite', 'longdesc', 'usemap', 'formtarget'
 ]);
 
+// Void/self-closing tags in HTML (don’t require closing tag)
+const VOID_ELEMENTS = new Set([
+  'area','base','br','col','embed','hr','img','input','link','meta','param','source','track','wbr'
+]);
+
 // Sanitize text content
 const ESC_MAP = { '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#x27;', '/': '&#x2F;' };
 const sanitizeText = (text) => {
@@ -54,7 +58,7 @@ const isValidUrl = (url) => {
 // Sanitize attribute value
 const sanitizeAttr = (name, value) => {
   const nameLower = name.toLowerCase();
-  if (DANGEROUS_ATTRS.has(nameLower)) return null;
+  if (DANGEROUS_ATTRS.has(nameLower) && !(typeof value === 'string' && value.includes('__HANDLER_'))) return null;
   if (URL_ATTRS.has(nameLower) && !isValidUrl(value)) return null;
   return typeof value === 'string' ? value.replace(/["']/g, (m) => m === '"' ? '&quot;' : '&#x27;') : value;
 };
@@ -74,7 +78,7 @@ const parseHTML = (html) => {
       const tagName = (isClosing ? tagContent.slice(1) : tagContent).split(/\s/)[0].toLowerCase();
       
       tokens.push(isClosing ? { type: 'close', tag: tagName } : 
-        { type: 'open', tag: tagName, attrs: parseAttrs(tagContent.slice(tagName.length)), self: tagContent.endsWith('/') });
+        { type: 'open', tag: tagName, attrs: parseAttrs(tagContent.slice(tagName.length)), self: tagContent.endsWith('/') || VOID_ELEMENTS.has(tagName) });
       i = tagEnd + 1;
     } else {
       const nextTag = html.indexOf('<', i);
@@ -102,14 +106,24 @@ const parseAttrs = (attrStr) => {
 };
 
 // Convert HTML tokens to VNode tree
-const tokensToVNode = (tokens) => {
+const tokensToVNode = (tokens, vholes) => {
   const stack = [{ children: [] }];
   
   tokens.forEach(token => {
     const current = stack[stack.length - 1];
     
     if (token.type === 'text') {
-      current.children.push(sanitizeText(token.content));
+      const s = token.content;
+      let last = 0;
+      s.replace(/__VNODE_(\d+)__/g, (m, id, idx) => {
+        const pre = s.slice(last, idx);
+        if (pre) current.children.push(sanitizeText(pre));
+        const v = vholes?.[+id];
+        if (v != null && v !== false) current.children.push(v);
+        last = idx + m.length;
+      });
+      const rest = s.slice(last);
+      if (rest) current.children.push(sanitizeText(rest));
     } else if (token.type === 'open' && !DANGEROUS_TAGS.has(token.tag)) {
       const element = { type: token.tag, props: { ...token.attrs }, children: [] };
       current.children.push(element);
@@ -124,7 +138,8 @@ const tokensToVNode = (tokens) => {
 
 // Template literal processor
 const html = (strings, ...values) => {
-  let result = '';
+  let result = '', vholes = [], vi = 0;
+  const putV = (v) => (vholes[vi] = v, `__VNODE_${vi++}__`);
   strings.forEach((str, i) => {
     result += str;
     if (i < values.length) {
@@ -132,14 +147,18 @@ const html = (strings, ...values) => {
       if (typeof value === 'function') {
         result += `__HANDLER_${i}__`;
       } else if (Array.isArray(value)) {
-        value.forEach(v => result += typeof v === 'string' ? sanitizeText(v) : '__VNODE__');
+        value.forEach(v => {
+          if (v == null || v === false) return;
+          result += (typeof v === 'string' || typeof v === 'number') ? sanitizeText(String(v)) : putV(v);
+        });
       } else {
-        result += sanitizeText(value);
+        if (value == null || value === false) return;
+        result += (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') ? sanitizeText(String(value)) : putV(value);
       }
     }
   });
 
-  const vnodes = tokensToVNode(parseHTML(result));
+  const vnodes = tokensToVNode(parseHTML(result), vholes);
 
   const processVNode = (vnode) => {
     if (typeof vnode === 'string') {
@@ -165,12 +184,13 @@ const html = (strings, ...values) => {
         }
       });
 
-      if (vnode.children?.length) {
-        vnode.children = vnode.children.map(processVNode);
-        vnode.props.children = vnode.children;
+      const kids = Array.isArray(vnode.children) ? vnode.children : (Array.isArray(vnode.props.children) ? vnode.props.children : []);
+      if (kids.length) {
+        const next = kids.map(processVNode);
+        vnode.props.children = next;
+        return createElement(vnode.type, vnode.props, ...next);
       }
-
-      return createElement(vnode.type, vnode.props, ...vnode.children);
+      return createElement(vnode.type, vnode.props);
     }
 
     return vnode;
