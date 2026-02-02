@@ -46,7 +46,7 @@
 
 | Framework | Core | Full | Minified | Notes |
 |-----------|------|------|----------|-------|
-| **MinimaJS** | 13KB | 53KB | 9KB core, 37KB full | All features in single file |
+| **MinimaJS** | 15KB | 53KB | 10KB core, 37KB full | All features in single file |
 | React + ReactDOM | 130KB | 130KB | 42KB (+deps) | Requires ecosystem |
 | Vue 3 | 120KB | 120KB | 34KB (+deps) | Requires ecosystem |
 | Svelte | 1KB | 1KB | 1KB (compiled) | Compile-time only |
@@ -970,9 +970,28 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md).
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
+## Documentation
+
+- [Docs index](docs/index.md)
+- [API reference](docs/api/index.md)
+- [Glossary](docs/glossary.md)
+- [Getting started](docs/getting-started.md)
+- [Modules and imports](docs/modules-and-imports.md)
+- [Build, test, size](docs/build-test-size.md)
+- [Security (XSS/CSP)](docs/security.md)
+- [SSR and hydration](docs/ssr.md)
+- [DevTools](docs/devtools.md)
+- [LLM docs (overview + links)](docs/llm.md)
+  - [LLM API](llm/LLM-API.md)
+  - [LLM Design](llm/LLM-DESIGN.md)
+  - [LLM Implementation](llm/LLM-IMPLEMENTATION.md)
+  - [LLM Operations](llm/LLM-OPERATIONS.md)
+  - [LLM Requirements](llm/LLM-REQUIREMENTS.md)
+  - [LLM Testing](llm/LLM-TESTING.md)
+  - [LLM Troubleshooting](llm/LLM-TROUBLESHOOTING.md)
+
 ## Links
 
-- [Documentation](https://minimajs.dev)
 - **Examples**: `cd examples && python3 -m http.server 8000`
 - [GitHub Package](https://github.com/Minimum-Viable-Web/minima-js/packages)
 - [GitHub](https://github.com/Minimum-Viable-Web/minima-js)
