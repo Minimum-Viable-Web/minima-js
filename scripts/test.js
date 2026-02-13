@@ -1,15 +1,19 @@
 /** MinimaJS Node Test Suite - Zero Dependencies */
 
 import { createElement } from '../src/minima-core.js';
-import { sanitizeText, html } from '../src/minima-template.js';
+import { sanitizeText, html, loadTemplate } from '../src/minima-template.js';
 import { renderToString, injectSSRData } from '../src/minima-ssr.js';
 import { defineComponent, withProps, Fragment, memo } from '../src/minima-component.js';
 import { runLibModuleTests } from '../tests/lib-modules.test.js';
 
 let passed = 0, failed = 0;
+const pending = [];
 const test = (name, fn) => {
-  try { fn(); passed++; console.log(`✓ ${name}`); }
-  catch (e) { failed++; console.log(`✗ ${name}: ${e.message}`); }
+  try {
+    const r = fn();
+    if (r && typeof r.then === 'function') pending.push(r.then(() => { passed++; console.log(`✓ ${name}`); }, (e) => { failed++; console.log(`✗ ${name}: ${e.message}`); }));
+    else { passed++; console.log(`✓ ${name}`); }
+  } catch (e) { failed++; console.log(`✗ ${name}: ${e.message}`); }
 };
 const eq = (a, b, msg) => { if (a !== b) throw new Error(`${msg}: ${a} !== ${b}`); };
 const ok = (v, msg) => { if (!v) throw new Error(msg); };
@@ -131,6 +135,10 @@ test('template: preserves data-* and aria-* attrs', () => {
   const v = html`<div data-x="1" aria-label="y"></div>`;
   eq(v.props['data-x'], '1', 'data-x');
   eq(v.props['aria-label'], 'y', 'aria-label');
+});
+
+test('loadTemplate rejects http URL (MITM protection)', () => {
+  return loadTemplate('http://evil.com/t.html').then(() => { throw new Error('expected reject'); }, (e) => { ok(e.message.includes('https') || e.message.includes('MITM'), 'rejects non-HTTPS'); });
 });
 
 test('template: preserves whitespace in text nodes', () => {
@@ -289,9 +297,12 @@ console.log('\n-- Lib Modules: API / LLM / DevTools / Full --');
 runLibModuleTests(test, eq, ok);
 
 // Summary
-console.log('\n=== Results ===');
-console.log(`Passed: ${passed}`);
-console.log(`Failed: ${failed}`);
-console.log(`Total: ${passed + failed}`);
-process.exit(failed > 0 ? 1 : 0);
+(async () => {
+  await Promise.all(pending);
+  console.log('\n=== Results ===');
+  console.log(`Passed: ${passed}`);
+  console.log(`Failed: ${failed}`);
+  console.log(`Total: ${passed + failed}`);
+  process.exit(failed > 0 ? 1 : 0);
+})();
 

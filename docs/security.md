@@ -35,6 +35,14 @@ const onClick=()=>console.log('clicked');
 const view=html`<button onclick="${onClick}">Click</button>`;
 ```
 
+## MITM protection for network fetches
+
+`loadTemplate(url)` and `preloadComponent(componentPath)` only allow HTTPS URLs or same-origin relative paths (`/`, `./`, `../`). Plain `http://` URLs are rejected to avoid tampering on the wire.
+
+## Releases
+
+Packages are published over HTTPS (GitHub Packages). CI runs tests before publish. Consumers install via HTTPS; use lockfiles for reproducible installs.
+
 ## CSP notes
 
 - No `eval()` is used by the template engine.

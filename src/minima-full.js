@@ -763,6 +763,16 @@ const isValidUrl = (url) => {
   return !trimmed.startsWith('javascript:') && !trimmed.startsWith('data:') &&
          !trimmed.startsWith('vbscript:') && !trimmed.includes('javascript:');
 };
+const isSecureFetchUrl = (url) => {
+  if (typeof url !== 'string') return false;
+  const t = url.trim();
+  if (!t) return false;
+  const lower = t.toLowerCase();
+  if (lower.startsWith('javascript:') || lower.startsWith('data:') || lower.startsWith('vbscript:')) return false;
+  if (lower.startsWith('https://')) return true;
+  if (t.startsWith('/') || t.startsWith('./') || t.startsWith('../') || !t.includes(':')) return true;
+  return false;
+};
 
 // Sanitize attribute value
 const sanitizeAttr = (name, value) => {
@@ -913,6 +923,7 @@ const html = (strings, ...values) => {
 // CSP-compatible dynamic imports
 const loadTemplate = async (url) => {
   if (!isValidUrl(url)) throw new Error('Invalid template URL');
+  if (!isSecureFetchUrl(url)) throw new Error('Template URL must be https: or same-origin relative');
   const response = await fetch(url);
   const text = await response.text();
   return html([text]);
@@ -1037,6 +1048,7 @@ const preloadComponent = async (componentPath) => {
       const module = await import(componentPath);
       return module.default || module;
     }
+    if (!isSecureFetchUrl(componentPath)) throw new Error('Component URL must be https: or same-origin relative');
     const response = await fetch(componentPath);
     const blob = new Blob([await response.text()], { type: 'application/javascript' });
     const url = URL.createObjectURL(blob);
