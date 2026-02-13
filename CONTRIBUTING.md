@@ -66,15 +66,31 @@ Run the test suite:
 npm test
 ```
 
-Add tests for new features:
+### Test policy
+
+**New or changed functionality must include automated tests.** When you add a feature, fix a bug that affects behavior, or change public APIs, add or update tests in `scripts/test.js` (or `tests/*.test.js` for module-specific suites). The test run is required to pass before merge; PRs that add functionality without tests may be asked to add them.
 
 ```javascript
-// In examples/minima.test.js
-const testNewFeature = () => {
-  // Test implementation
-  console.log('PASS: New feature works');
-};
+// In scripts/test.js, add tests that run via npm test
+test('my feature does X', () => {
+  eq(actual, expected, 'description');
+});
 ```
+
+### Evidence of test policy adherence
+
+Major functionality in the codebase is covered by the automated suite (`npm test`). Examples of features with corresponding tests:
+
+| Area | Tests (in `scripts/test.js` or `tests/`) |
+|------|------------------------------------------|
+| Core (createElement, VNodes, hooks) | createElement, children, keys, edge cases |
+| Template (html, sanitizeText) | sanitizeText escaping, html parsing, void tags |
+| Security (XSS, CSP) | javascript:/data: URL blocking, inline handler drop, injectSSRData script breakout |
+| MITM protection (loadTemplate, preloadComponent) | loadTemplate rejects http URL |
+| SSR (renderToString, hydrate) | renderToString, void elements, escape, injectSSRData |
+| Components (defineComponent, memo, Fragment) | defineComponent, withProps, memo, Fragment |
+
+When adding major features, add tests in the same PR so the policy is followed in practice.
 
 ## Building
 
@@ -127,7 +143,7 @@ For new features, consider:
    docs: update README examples
    ```
 
-3. **Testing**: Ensure all tests pass
+3. **Testing**: Ensure all tests pass. New functionality must include tests (see Test policy above).
 
 4. **Size check**: Verify bundle size impact
    ```bash
@@ -136,7 +152,9 @@ For new features, consider:
 
 5. **Documentation**: Update relevant docs
 
-6. **Review**: Request review from maintainers
+6. **Release notes**: When cutting a release, update [CHANGELOG.md](CHANGELOG.md) with a human-readable summary of major changes (not raw git log). Include a *Security / Vulnerabilities* line: list any CVE-assigned run-time vulnerabilities fixed, or state that none were fixed in that release.
+
+7. **Review**: Request review from maintainers
 
 ## API Design Guidelines
 

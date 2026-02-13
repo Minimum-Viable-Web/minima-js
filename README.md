@@ -1,6 +1,6 @@
 # MinimaJS
 
-**Ultra-lightweight React alternative with short API syntax, zero dependencies, and LLM-optimized development experience.**
+A small JavaScript library for building interactive web pages: write less code, add no extra libraries, and get pages that update smoothly when data changes. Lightweight, short syntax, zero dependencies, and friendly for AI-assisted development.
 
 [![Package Status](https://github.com/Minimum-Viable-Web/minima-js/actions/workflows/publish.yml/badge.svg)](https://github.com/Minimum-Viable-Web/minima-js/actions/workflows/publish.yml)
 [![Build Status](https://github.com/Minimum-Viable-Web/minima-js/actions/workflows/ci.yml/badge.svg)](https://github.com/Minimum-Viable-Web/minima-js/actions/workflows/ci.yml)
@@ -902,7 +902,7 @@ html`<input value="${value}" oninput="${onChange}">`;
 
 ## Security
 
-MinimaJS includes built-in XSS protection:
+MinimaJS includes built-in XSS protection (`loadTemplate` and `preloadComponent` accept only HTTPS or same-origin relative URLs). See [Security (XSS/CSP)](docs/security.md).
 
 ```javascript
 import { html, sanitizeText } from '@minimum-viable-web/minimajs/full';
@@ -966,12 +966,25 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md).
 4. Push to the branch (`git push origin feature/amazing-feature`)  
 5. Open a Pull Request
 
+## Feedback
+
+We use [GitHub Issues](https://github.com/Minimum-Viable-Web/minima-js/issues) for all feedback. Open an issue to report bugs, request features, ask questions, or suggest improvements. Please search existing issues first to avoid duplicates.
+
+## Security / Vulnerability reporting
+
+Private vulnerability reports are supported. To send a report in a way that is kept private, use GitHub’s private vulnerability reporting (submissions are sent over HTTPS and visible only to maintainers):
+
+**https://github.com/Minimum-Viable-Web/minima-js/security/advisories/new**
+
+We’ll triage the report and work with you on a fix. Do not open a public issue for security-sensitive bugs.
+
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Documentation
 
+- [Release notes](CHANGELOG.md)
 - [Docs index](docs/index.md)
 - [API reference](docs/api/index.md)
 - [Glossary](docs/glossary.md)
