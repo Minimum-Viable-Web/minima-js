@@ -1,5 +1,8 @@
-/** MinimaJS Node Test Suite - Zero Dependencies */
+/** MinimaJS Node Test Suite - Zero Dependencies. Assertions enabled for dynamic analysis (not for production). */
 
+process.env.NODE_ENV = process.env.NODE_ENV || 'test';
+
+import assert from 'assert';
 import { createElement } from '../src/minima-core.js';
 import { sanitizeText, html, loadTemplate } from '../src/minima-template.js';
 import { renderToString, injectSSRData } from '../src/minima-ssr.js';
@@ -15,8 +18,8 @@ const test = (name, fn) => {
     else { passed++; console.log(`✓ ${name}`); }
   } catch (e) { failed++; console.log(`✗ ${name}: ${e.message}`); }
 };
-const eq = (a, b, msg) => { if (a !== b) throw new Error(`${msg}: ${a} !== ${b}`); };
-const ok = (v, msg) => { if (!v) throw new Error(msg); };
+const eq = (a, b, msg) => assert.strictEqual(a, b, msg || 'eq');
+const ok = (v, msg) => assert.ok(v, msg || 'ok');
 
 console.log('\n=== MinimaJS Test Suite ===\n');
 

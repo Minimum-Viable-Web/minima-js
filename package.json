@@ -54,7 +54,8 @@
     "test": "node scripts/test.js",
     "dev": "node scripts/dev.js",
     "prepublishOnly": "npm run build && npm test",
-    "size": "node -e \"console.log('Bundle sizes:'); require('fs').readdirSync('dist').forEach(f => console.log(f + ':', Math.round(require('fs').statSync('dist/' + f).size/1024) + 'KB'))\""
+    "size": "node -e \"console.log('Bundle sizes:'); require('fs').readdirSync('dist').forEach(f => console.log(f + ':', Math.round(require('fs').statSync('dist/' + f).size/1024) + 'KB'))\"",
+    "lint:syntax": "node --check src/minima.js && node --check src/minima-core.js && node --check src/minima-template.js && node --check src/minima-ssr.js && node --check src/minima-component.js && node --check src/minima-api.js && node --check src/minima-llm.js && node --check src/minima-devtools.js && node --check src/minima-full.js"
   },
   "keywords": [
     "framework",

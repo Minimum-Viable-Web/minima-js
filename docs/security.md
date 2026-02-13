@@ -39,6 +39,10 @@ const view=html`<button onclick="${onClick}">Click</button>`;
 
 `loadTemplate(url)` and `preloadComponent(componentPath)` only allow HTTPS URLs or same-origin relative paths (`/`, `./`, `../`). Plain `http://` URLs are rejected to avoid tampering on the wire.
 
+## Dynamic analysis (assertions)
+
+Tests and CI run with assertions enabled (Node `assert`, `NODE_ENV=test`) to improve fault detection before deployment. These assertions are for dynamic analysis only; they are not enabled in production builds. Production use of the library does not depend on or enable the test-time assertion paths.
+
 ## Releases
 
 Packages are published over HTTPS (GitHub Packages). CI runs tests before publish. Consumers install via HTTPS; use lockfiles for reproducible installs.

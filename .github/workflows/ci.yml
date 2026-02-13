@@ -25,8 +25,13 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
-    - name: Run tests
+    - name: Static syntax check
+      run: npm run lint:syntax
+
+    - name: Run tests (assertions enabled for dynamic analysis)
       run: npm test
+      env:
+        NODE_ENV: test
 
     - name: Check bundle size
       run: npm run size
