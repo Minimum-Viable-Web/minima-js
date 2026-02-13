@@ -2,6 +2,7 @@
 
 A small JavaScript library for building interactive web pages: write less code, add no extra libraries, and get pages that update smoothly when data changes. Lightweight, short syntax, zero dependencies, and friendly for AI-assisted development.
 
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/11937/badge)](https://www.bestpractices.dev/projects/11937)
 [![Package Status](https://github.com/Minimum-Viable-Web/minima-js/actions/workflows/publish.yml/badge.svg)](https://github.com/Minimum-Viable-Web/minima-js/actions/workflows/publish.yml)
 [![Build Status](https://github.com/Minimum-Viable-Web/minima-js/actions/workflows/ci.yml/badge.svg)](https://github.com/Minimum-Viable-Web/minima-js/actions/workflows/ci.yml)
 [![GitHub Package](https://img.shields.io/badge/GitHub-Package-blue.svg)](https://github.com/Minimum-Viable-Web/minima-js/packages)
